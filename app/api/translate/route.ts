@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import OpenAI from 'openai';
 
 const client = new OpenAI({
@@ -7,26 +7,24 @@ const client = new OpenAI({
 });
 
 export async function POST(req: NextRequest) {
-  try {
-    const { text, languages } = await req.json();
+  const { text, languages } = await req.json();
 
-    if (!text || !languages || languages.length !== 2) {
-      return NextResponse.json(
-        { error: 'Missing required fields or invalid languages array' },
-        { status: 400 }
-      );
-    }
+  if (!text || !languages || languages.length !== 2) {
+    return new Response(
+      JSON.stringify({ error: 'Missing required fields or invalid languages array' }),
+      { status: 400 }
+    );
+  }
 
-    console.log('Translation request:', { text, languages });
-
-    const prompt = `You are a professional translator for ${languages[0].name} and ${languages[1].name}.
+  const prompt = `You are a professional translator for ${languages[0].name} and ${languages[1].name}.
 First, determine if the input text is in ${languages[0].name} or ${languages[1].name}.
 Then, translate the text to the other language while maintaining the original meaning and nuance.
 Respond with only the translation, no explanations.
 
 Text to translate: ${text}`;
 
-    const completion = await client.chat.completions.create({
+  try {
+    const stream = await client.chat.completions.create({
       model: 'deepseek-chat',
       messages: [
         {
@@ -35,23 +33,45 @@ Text to translate: ${text}`;
         }
       ],
       temperature: 0.3,
+      stream: true,
     });
 
-    const translation = completion.choices[0]?.message?.content;
-    if (!translation) {
-      throw new Error('No translation received');
-    }
+    // Create a new ReadableStream that will be our response
+    const textEncoder = new TextEncoder();
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of stream) {
+            const content = chunk.choices[0]?.delta?.content;
+            if (content) {
+              // Send the chunk as a Server-Sent Event
+              const message = `data: ${JSON.stringify({ content })}\n\n`;
+              controller.enqueue(textEncoder.encode(message));
+            }
+          }
+          // Send a completion message
+          controller.enqueue(textEncoder.encode('data: [DONE]\n\n'));
+          controller.close();
+        } catch (error) {
+          controller.error(error);
+        }
+      },
+    });
 
-    console.log('Translation:', translation);
-
-    return NextResponse.json({ translation: translation.trim() });
+    // Return the stream with appropriate headers
+    return new Response(readableStream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
   } catch (error) {
-    console.error('Translation error:', error);
-    return NextResponse.json(
-      { 
+    return new Response(
+      JSON.stringify({ 
         error: 'Failed to translate text',
         details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      }),
       { status: 500 }
     );
   }

@@ -34,17 +34,66 @@ export default function Home() {
         }),
       });
 
-      const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || 'Translation failed');
+        const error = await response.json();
+        throw new Error(error.error || 'Translation failed');
       }
 
-      return data.translation;
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      // Create a new promise that will resolve with the full translation
+      return new Promise<string>((resolve, reject) => {
+        let translation = '';
+        const reader = response.body!.getReader();
+        const decoder = new TextDecoder();
+
+        async function readStream() {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              // Decode the stream chunk and split into SSE messages
+              const chunk = decoder.decode(value);
+              const lines = chunk.split('\n');
+
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(5).trim();
+                  
+                  // Check for the completion message
+                  if (data === '[DONE]') {
+                    resolve(translation);
+                    return;
+                  }
+
+                  // Only try to parse if it's not the completion message
+                  try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.content) {
+                      translation += parsed.content;
+                      setTranslatedText(translation);
+                    }
+                  } catch (e) {
+                    console.error('Error parsing SSE message:', e);
+                  }
+                }
+              }
+            }
+            resolve(translation);
+          } catch (error) {
+            reject(error);
+          }
+        }
+
+        readStream();
+      });
     } catch (error) {
-      console.error('Translation error:', error);
       throw error;
     }
-  }, []);
+  }, [setTranslatedText]);
 
   const processAudio = async (audioBlob: Blob) => {
     try {
@@ -52,32 +101,27 @@ export default function Home() {
       setError(null);
       setTranscribedText('');
       setTranslatedText('');
-      console.log('Processing audio...', { size: audioBlob.size, type: audioBlob.type });
 
       // Create form data for the audio file
       const formData = new FormData();
       formData.append('audio', audioBlob, 'audio.webm');
 
       // Send audio for transcription
-      console.log('Sending audio for transcription...');
       const transcriptionResponse = await fetch('/api/speech', {
         method: 'POST',
         body: formData,
       });
 
       const transcriptionData = await transcriptionResponse.json();
-      console.log('Transcription response:', transcriptionData);
 
       if (!transcriptionResponse.ok) {
         throw new Error(transcriptionData.details || transcriptionData.error || 'Failed to transcribe audio');
       }
 
-      console.log('Transcribed text:', transcriptionData.text);
       setTranscribedText(transcriptionData.text);
 
       if (supportedLanguages.length === 0) {
         // Initial language setup phase
-        console.log('Detecting initial language pair...');
         const languageResponse = await fetch('/api/language', {
           method: 'POST',
           headers: {
@@ -87,13 +131,11 @@ export default function Home() {
         });
 
         const languageData = await languageResponse.json();
-        console.log('Language detection response:', languageData);
 
         if (!languageResponse.ok) {
           throw new Error(languageData.error || 'Failed to detect languages');
         }
 
-        console.log('Setting up supported languages:', languageData);
         setSupportedLanguages([
           languageData.sourceLanguage,
           languageData.targetLanguage
@@ -120,7 +162,6 @@ export default function Home() {
 
     } catch (error) {
       const message = error instanceof Error ? error.message : 'An unknown error occurred';
-      console.error('Error processing audio:', message);
       setError(message);
     } finally {
       setIsProcessing(false);

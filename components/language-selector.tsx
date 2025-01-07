@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Button } from './ui/button';
 import { Mic, Loader2 } from 'lucide-react';
 

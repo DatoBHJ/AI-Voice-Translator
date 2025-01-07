@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { Language } from '@/lib/types';
 
 const client = new OpenAI({
   baseURL: 'https://api.deepseek.com/v1',

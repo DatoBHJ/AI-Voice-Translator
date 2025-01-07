@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { LanguageSelector } from '@/components/language-selector';
 import { MessageDisplay } from '@/components/message-display';
 import { useAudioRecorder } from '@/hooks/use-audio';
-import { LanguagePair, Language } from '@/lib/types';
+import { Language } from '@/lib/types';
 
 interface Message {
   id: string;

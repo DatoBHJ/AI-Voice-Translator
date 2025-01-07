@@ -17,16 +17,66 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps)
     setMediaRecorder(null);
   }, [mediaRecorder]);
 
+  const getSupportedMimeType = () => {
+    const types = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/aac',
+      'audio/ogg;codecs=opus',
+      'audio/wav'
+    ];
+
+    for (const type of types) {
+      if (MediaRecorder.isTypeSupported(type)) {
+        console.log('Found supported MIME type:', type);
+        return type;
+      }
+    }
+
+    throw new Error('No supported audio MIME type found');
+  };
+
   const startRecording = useCallback(async () => {
     try {
+      // Check if mediaDevices is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Media devices not supported');
+      }
+
       console.log('Starting recording...');
       audioChunksRef.current = [];
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Check if we're on HTTPS
+      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        throw new Error('Recording requires HTTPS (except on localhost)');
+      }
+
+      // Request audio permission with constraints
+      const constraints = {
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        }
+      };
+
+      console.log('Requesting audio permission...');
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('Got audio stream');
 
+      // Check if MediaRecorder is supported
+      if (!window.MediaRecorder) {
+        throw new Error('MediaRecorder not supported');
+      }
+
+      // Get supported MIME type
+      const mimeType = getSupportedMimeType();
+      console.log('Using MIME type:', mimeType);
+
       const recorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType,
+        audioBitsPerSecond: 128000
       });
       
       recorder.ondataavailable = (event) => {
@@ -42,7 +92,7 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps)
         
         if (audioChunksRef.current.length > 0) {
           console.log('Creating audio blob from', audioChunksRef.current.length, 'chunks');
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
           console.log('Audio blob created:', audioBlob.size, 'bytes');
           await onRecordingComplete(audioBlob);
           audioChunksRef.current = [];
@@ -53,6 +103,11 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps)
         cleanup();
       };
 
+      recorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+        cleanup();
+      };
+
       // Start recording and request data every 500ms
       recorder.start(500);
       console.log('Recorder started');
@@ -60,7 +115,16 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps)
       setIsRecording(true);
     } catch (error) {
       console.error('Error starting recording:', error);
+      if (error instanceof Error) {
+        // Log specific error messages for debugging
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        if ('constraint' in error) {
+          console.error('Constraint error:', (error as any).constraint);
+        }
+      }
       cleanup();
+      throw error; // Re-throw to handle in the UI
     }
   }, [onRecordingComplete, cleanup]);
 

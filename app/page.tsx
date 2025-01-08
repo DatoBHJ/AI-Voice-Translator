@@ -172,7 +172,7 @@ export default function Home() {
   });
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-24">
+    <main className="flex min-h-screen flex-col items-center p-20">
       <div className="w-full max-w-md space-y-8">
         {supportedLanguages.length === 0 ? (
           // Language Selection Phase
@@ -189,7 +189,7 @@ export default function Home() {
           <>
             <div className="text-center mb-8">
               <p className="text-sm text-gray-500">
-                Translating between {supportedLanguages[0].name} and {supportedLanguages[1].name}
+                Translating between <br />{supportedLanguages[0].name} and {supportedLanguages[1].name}
               </p>
             </div>
             

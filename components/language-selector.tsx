@@ -1,5 +1,5 @@
 import { Button } from './ui/button';
-import { Mic, Loader2 } from 'lucide-react';
+import { Mic, Loader2, Volume2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface LanguageSelectorProps {
@@ -22,54 +22,107 @@ export function LanguageSelector({
   showWelcomeMessage = false
 }: LanguageSelectorProps) {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
-      setIsScrolled(scrollPosition > 100); // 100px 이상 스크롤되면 투명도 적용
+      setIsScrolled(scrollPosition > 100);
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const playTranslatedText = async () => {
+    if (!translatedText || isPlaying) return;
+    
+    try {
+      setIsPlaying(true);
+      const response = await fetch('/api/speech/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: translatedText,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate speech');
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      
+      audio.onended = () => {
+        setIsPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      await audio.play();
+    } catch (error) {
+      console.error('Failed to play audio:', error);
+      setIsPlaying(false);
+    }
+  };
+
   return (
     <div className="relative min-h-[60vh] bg-white">
-      {/* Content area */}
-      {/* <div className="pb-10"> */}
-        {/* Welcome Message at top */}
-        {showWelcomeMessage && (
-          <div className="text-gray-500 text-center space-y-0.5 text-sm pt-20">
-            <p>"English and Japanese"</p>
-            <p>"한국어랑 스페인어"</p>
-            <p>"Français et 中文"</p>
-            <p>Deutsch und العربية</p>
-          </div>
-        )}
+      {showWelcomeMessage && (
+        <div className="text-gray-500 text-center space-y-0.5 text-sm pt-20">
+          <p>"English and Japanese"</p>
+          <p>"한국어랑 스페인어"</p>
+          <p>"Français et 中文"</p>
+          <p>Deutsch und العربية</p>
+          <br /> 
+          <p className="text-gray-300 mt-2">name two languages</p>
+        </div>
+      )}
 
-        {/* Text display */}
-        {transcribedText && !isRecording && (
-          <div className="text-center mt-10">
-            <p className="text-lg text-gray-900">
-              "{transcribedText}"
-              {translatedText && (
-                <span className="text-gray-600 italic">
-                  {" "}<br /><br />({translatedText})
-                </span>
-              )}
-            </p>
-          </div>
-        )}
-      {/* </div> */}
+      {transcribedText && !isRecording && (
+        <div className="text-center mt-10 space-y-4">
+          <p className="text-lg text-gray-900">
+            "{transcribedText}"
+          </p>
+          {translatedText && (
+            <div className="flex flex-col items-center">
+              <button
+                onClick={playTranslatedText}
+                disabled={isPlaying}
+                className="group hover:bg-gray-50 px-4 pt-2 rounded-lg transition-colors duration-200"
+                aria-label="Play translation"
+              >
+                <p className="text-gray-600 italic group-hover:text-gray-800">
+                  ({translatedText})
+                </p>
+              </button>
+              <button
+                onClick={playTranslatedText}
+                disabled={isPlaying}
+                className={`
+                  w-8 h-8 rounded-full
+                  flex items-center justify-center
+                  hover:bg-gray-100 transition-colors duration-200
+                  ${isPlaying ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                `}
+                aria-label="Play translation"
+              >
+                <Volume2 className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Fixed position container for button and status */}
       <div className={`
         fixed bottom-28 left-0 right-0 h-32 bg-transparent 
         flex flex-col items-center justify-center
         transition-opacity duration-300 ease-in-out
         ${isScrolled ? 'opacity-50' : 'opacity-100'}
       `}>
-        {/* Recording button */}
         <Button
           variant="outline"
           size="lg"
@@ -90,7 +143,6 @@ export function LanguageSelector({
           )}
         </Button>
 
-        {/* Status text - with fixed height */}
         <div className="h-6 text-gray-500 text-center text-sm mt-4">
           {isProcessing 
             ? "Processing your speech..."

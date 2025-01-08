@@ -142,12 +142,11 @@ export default function Home() {
         ]);
       } else {
         // Translation phase
+        setIsProcessing(true);
         const translation = await translateText(
           transcriptionData.text,
           supportedLanguages
         );
-
-        setTranslatedText(translation);
 
         // Add the message to the conversation
         const newMessage: Message = {

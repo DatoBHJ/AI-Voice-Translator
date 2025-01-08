@@ -48,7 +48,7 @@ export function LanguageSelector({
         )}
 
         {/* Text display */}
-        {transcribedText && !isRecording && !isProcessing && (
+        {transcribedText && !isRecording && (
           <div className="text-center mt-10">
             <p className="text-lg text-gray-900">
               "{transcribedText}"

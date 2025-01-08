@@ -183,6 +183,7 @@ export default function Home() {
             onRecordingStart={startRecording}
             onRecordingStop={stopRecording}
             transcribedText={transcribedText}
+            showWelcomeMessage={true}
           />
         ) : (
           // Translation Interface

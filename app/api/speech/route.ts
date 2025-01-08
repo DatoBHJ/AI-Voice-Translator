@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+export const runtime = 'edge';
+
 // Initialize OpenAI client with Groq configuration
 const client = new OpenAI({
   baseURL: 'https://api.groq.com/openai/v1',

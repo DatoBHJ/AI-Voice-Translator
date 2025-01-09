@@ -23,8 +23,10 @@ export function LanguageSelector({
 }: LanguageSelectorProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -40,22 +42,51 @@ export function LanguageSelector({
   }, []);
 
   const cleanupAudio = () => {
+    // Abort any ongoing fetch request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
+    // Cleanup audio element
     if (audioRef.current) {
-      audioRef.current.pause();
+      const audio = audioRef.current;
+      
+      // Remove all event listeners
+      audio.oncanplaythrough = null;
+      audio.onended = null;
+      audio.onerror = null;
+      audio.onloadstart = null;
+      audio.onloadeddata = null;
+      
+      // Stop and cleanup
+      audio.pause();
+      audio.currentTime = 0;
+      audio.src = ''; // Clear source
+      audio.load(); // Reset audio element
       audioRef.current = null;
     }
+
+    // Cleanup URL
     if (audioUrlRef.current) {
       URL.revokeObjectURL(audioUrlRef.current);
       audioUrlRef.current = null;
     }
+
     setIsPlaying(false);
+    setIsLoadingAudio(false);
   };
 
   const playTranslatedText = async () => {
-    if (!translatedText || isPlaying) return;
+    if (!translatedText || isPlaying || isLoadingAudio) return;
     
     try {
-      setIsPlaying(true);
+      cleanupAudio(); // Cleanup any existing audio first
+      setIsLoadingAudio(true);
+      
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+      
       const response = await fetch('/api/speech/tts', {
         method: 'POST',
         headers: {
@@ -64,6 +95,7 @@ export function LanguageSelector({
         body: JSON.stringify({
           text: translatedText,
         }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -71,26 +103,78 @@ export function LanguageSelector({
       }
 
       const audioBlob = await response.blob();
+      
+      // Verify blob is audio
+      if (!audioBlob.type.startsWith('audio/')) {
+        throw new Error(`Invalid audio format: ${audioBlob.type}`);
+      }
+      
       const audioUrl = URL.createObjectURL(audioBlob);
       audioUrlRef.current = audioUrl;
       
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
+      const audio = new Audio();
+      
+      // Debug logging for audio states
+      audio.onloadstart = () => {
+        console.log('Audio loading started');
+      };
+      
+      audio.onloadeddata = () => {
+        console.log('Audio data loaded');
+      };
+      
+      // Set up audio event handlers before setting source
+      audio.oncanplaythrough = () => {
+        console.log('Audio can play through');
+        setIsLoadingAudio(false);
+        setIsPlaying(true);
+      };
       
       audio.onended = () => {
+        console.log('Audio playback ended');
+        cleanupAudio();
+      };
+      
+      audio.onerror = () => {
+        console.error('Audio playback error:', {
+          error: audio.error,
+          networkState: audio.networkState,
+          readyState: audio.readyState,
+          currentSrc: audio.currentSrc,
+        });
         cleanupAudio();
       };
 
-      await audio.play();
-    } catch (error) {
-      console.error('Failed to play audio:', error);
+      // Only store the audio reference after all event handlers are set
+      audioRef.current = audio;
+      
+      // Set source and load
+      audio.src = audioUrl;
+      
+      try {
+        await audio.play();
+        console.log('Audio playback started');
+      } catch (playError) {
+        console.error('Audio play failed:', playError);
+        cleanupAudio();
+        throw playError;
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Audio fetch aborted');
+      } else {
+        console.error('Failed to play audio:', error);
+      }
       cleanupAudio();
     }
   };
 
   const handleRecordingStart = () => {
     cleanupAudio();
-    onRecordingStart();
+    // Ensure cleanup is complete before starting new recording
+    requestAnimationFrame(() => {
+      onRecordingStart();
+    });
   };
 
   return (
@@ -115,7 +199,7 @@ export function LanguageSelector({
             <div className="flex flex-col items-center">
               <button
                 onClick={playTranslatedText}
-                disabled={isPlaying}
+                disabled={isPlaying || isLoadingAudio}
                 className="group hover:bg-gray-50 px-4 pt-2 rounded-lg transition-colors duration-200"
                 aria-label="Play translation"
               >
@@ -125,12 +209,12 @@ export function LanguageSelector({
               </button>
               <button
                 onClick={playTranslatedText}
-                disabled={isPlaying}
+                disabled={isPlaying || isLoadingAudio}
                 className={`
                   w-8 h-8 rounded-full
                   flex items-center justify-center
                   hover:bg-gray-100 transition-colors duration-200
-                  ${isPlaying ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                  ${(isPlaying || isLoadingAudio) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                 `}
                 aria-label="Play translation"
               >

@@ -55,7 +55,7 @@ export function MessageDisplay({ messages, currentLanguage }: MessageDisplayProp
       {messages.map((message, index) => {
         const isSentByUser = message.sourceLang === currentLanguage;
         const showTimestamp = index === messages.length - 1 || 
-          new Date(messages[index + 1]?.timestamp).getTime() - new Date(message.timestamp).getTime() > 30000;
+          new Date(messages[index + 1]?.timestamp).getTime() - new Date(message.timestamp).getTime() > 60000;
         
         const nextMessage = messages[index + 1];
         const isNextMessageDifferentSender = nextMessage && 

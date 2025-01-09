@@ -232,7 +232,7 @@ export function LanguageSelector({
           variant="outline"
           size="lg"
           className={`
-            w-24 h-24 aspect-square rounded-full border-4 
+            w-24 h-24 min-w-[96px] min-h-[96px] max-w-[96px] max-h-[96px] rounded-full border-4 
             ${isRecording ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white'}
             transition-all duration-200 ease-in-out
             ${(isProcessing || isPlaying || isLoadingAudio) ? 'opacity-50 cursor-not-allowed' : ''}

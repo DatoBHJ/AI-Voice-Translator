@@ -8,6 +8,7 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps)
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const audioChunksRef = useRef<Blob[]>([]);
+  const isProcessingRef = useRef(false);
 
   const cleanup = useCallback(() => {
     if (mediaRecorder?.stream) {
@@ -15,6 +16,8 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps)
     }
     setIsRecording(false);
     setMediaRecorder(null);
+    audioChunksRef.current = [];
+    isProcessingRef.current = false;
   }, [mediaRecorder]);
 
   const getSupportedMimeType = () => {
@@ -38,13 +41,22 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps)
   };
 
   const startRecording = useCallback(async () => {
+    // Prevent multiple starts
+    if (isProcessingRef.current || isRecording) {
+      console.log('Recording already in progress');
+      return;
+    }
+
     try {
+      isProcessingRef.current = true;
+      console.log('Starting recording...');
+      
       // Check if mediaDevices is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Media devices not supported');
       }
 
-      console.log('Starting recording...');
+      // Reset audio chunks
       audioChunksRef.current = [];
 
       // Check if we're on HTTPS
@@ -74,6 +86,7 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps)
       const mimeType = getSupportedMimeType();
       console.log('Using MIME type:', mimeType);
 
+      // Create new MediaRecorder instance
       const recorder = new MediaRecorder(stream, {
         mimeType,
         audioBitsPerSecond: 128000
@@ -94,7 +107,13 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps)
           console.log('Creating audio blob from', audioChunksRef.current.length, 'chunks');
           const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
           console.log('Audio blob created:', audioBlob.size, 'bytes');
-          await onRecordingComplete(audioBlob);
+          
+          try {
+            await onRecordingComplete(audioBlob);
+          } catch (error) {
+            console.error('Error processing recording:', error);
+          }
+          
           audioChunksRef.current = [];
         } else {
           console.error('No audio data recorded');
@@ -116,7 +135,6 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps)
     } catch (error) {
       console.error('Error starting recording:', error);
       if (error instanceof Error) {
-        // Log specific error messages for debugging
         console.error('Error name:', error.name);
         console.error('Error message:', error.message);
         if ('constraint' in error) {
@@ -124,14 +142,28 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps)
         }
       }
       cleanup();
-      throw error; // Re-throw to handle in the UI
+      throw error;
+    } finally {
+      isProcessingRef.current = false;
     }
-  }, [onRecordingComplete, cleanup]);
+  }, [onRecordingComplete, cleanup, isRecording]);
 
   const stopRecording = useCallback(() => {
+    // Prevent multiple stops
+    if (isProcessingRef.current) {
+      console.log('Already processing stop request');
+      return;
+    }
+
     console.log('Stopping recording...');
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
+      isProcessingRef.current = true;
+      try {
+        mediaRecorder.stop();
+      } catch (error) {
+        console.error('Error stopping recording:', error);
+        cleanup();
+      }
     } else {
       cleanup();
     }

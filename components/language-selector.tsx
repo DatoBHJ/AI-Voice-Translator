@@ -24,9 +24,19 @@ export function LanguageSelector({
   const [isScrolled, setIsScrolled] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const [showTranscription, setShowTranscription] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Reset transcription display when recording starts or processing state changes
+  useEffect(() => {
+    if (isRecording || isProcessing) {
+      setShowTranscription(false);
+    } else if (transcribedText && !isRecording && !isProcessing) {
+      setShowTranscription(true);
+    }
+  }, [isRecording, isProcessing, transcribedText]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -77,8 +87,17 @@ export function LanguageSelector({
     setIsLoadingAudio(false);
   };
 
+  const handleRecordingStart = () => {
+    // Ensure all audio and UI states are reset before starting new recording
+    cleanupAudio();
+    setShowTranscription(false);
+    requestAnimationFrame(() => {
+      onRecordingStart();
+    });
+  };
+
   const playTranslatedText = async () => {
-    if (!translatedText || isPlaying || isLoadingAudio) return;
+    if (!translatedText || isPlaying || isLoadingAudio || isRecording || isProcessing) return;
     
     try {
       cleanupAudio(); // Cleanup any existing audio first
@@ -169,14 +188,6 @@ export function LanguageSelector({
     }
   };
 
-  const handleRecordingStart = () => {
-    cleanupAudio();
-    // Ensure cleanup is complete before starting new recording
-    requestAnimationFrame(() => {
-      onRecordingStart();
-    });
-  };
-
   return (
     <div className="relative min-h-[60vh] bg-white">
       {showWelcomeMessage && (
@@ -190,17 +201,20 @@ export function LanguageSelector({
         </div>
       )}
 
-      {transcribedText && !isRecording && (
+      {showTranscription && (
         <div className="text-center mt-10 space-y-4">
           <p className="text-lg text-gray-900">
             "{transcribedText}"
           </p>
-          {translatedText && (
+          {translatedText && !isRecording && !isProcessing && (
             <div className="flex flex-col items-center">
               <button
                 onClick={playTranslatedText}
-                disabled={isPlaying || isLoadingAudio}
-                className="group hover:bg-gray-50 px-4 pt-2 rounded-lg transition-colors duration-200"
+                disabled={isPlaying || isLoadingAudio || isRecording || isProcessing}
+                className={`
+                  group px-4 pt-2 rounded-lg transition-all duration-200
+                  ${(isPlaying || isLoadingAudio) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}
+                `}
                 aria-label="Play translation"
               >
                 <p className="text-gray-600 italic group-hover:text-gray-800">
@@ -209,12 +223,14 @@ export function LanguageSelector({
               </button>
               <button
                 onClick={playTranslatedText}
-                disabled={isPlaying || isLoadingAudio}
+                disabled={isPlaying || isLoadingAudio || isRecording || isProcessing}
                 className={`
                   w-8 h-8 rounded-full
                   flex items-center justify-center
-                  hover:bg-gray-100 transition-colors duration-200
-                  ${(isPlaying || isLoadingAudio) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                  transition-all duration-200
+                  ${(isPlaying || isLoadingAudio || isRecording || isProcessing) 
+                    ? 'opacity-50 cursor-not-allowed' 
+                    : 'hover:bg-gray-100 cursor-pointer'}
                 `}
                 aria-label="Play translation"
               >
@@ -237,12 +253,12 @@ export function LanguageSelector({
           className={`
             w-24 h-24 aspect-square rounded-full border-4 
             ${isRecording ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white'}
-            transition-colors duration-200 ease-in-out
-            ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}
+            transition-all duration-200 ease-in-out
+            ${(isProcessing || isPlaying || isLoadingAudio) ? 'opacity-50 cursor-not-allowed' : ''}
             shadow-lg
           `}
           onClick={isRecording ? onRecordingStop : handleRecordingStart}
-          disabled={isProcessing}
+          disabled={isProcessing || isPlaying || isLoadingAudio}
         >
           {isProcessing ? (
             <Loader2 className="w-10 h-10 text-gray-500 animate-spin" />

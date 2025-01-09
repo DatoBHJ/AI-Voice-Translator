@@ -46,11 +46,16 @@ export async function POST(req: NextRequest) {
       file,
       model: 'whisper-large-v3',
       temperature: 0.0,
+      response_format: 'verbose_json'
     });
 
-    console.log('Transcription received:', transcription.text);
-
-    return NextResponse.json({ text: transcription.text });
+    console.log('Full response:', transcription);
+    console.log('Detected language:', transcription.language);
+    
+    return NextResponse.json({ 
+      text: transcription.text,
+      language: transcription.language 
+    });
   } catch (error) {
     console.error('Speech-to-text error:', error);
     return NextResponse.json(

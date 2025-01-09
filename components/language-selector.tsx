@@ -192,39 +192,31 @@ export function LanguageSelector({
 
       {showTranscription && (
         <div className="text-center mt-10 space-y-4">
-          <p className="text-lg text-gray-900">
+          <p className="text-sm text-gray-500">
             "{transcribedText}"
           </p>
           {translatedText && !isRecording && !isProcessing && (
             <div className="flex flex-col items-center">
-              <button
-                onClick={playTranslatedText}
-                disabled={isPlaying || isLoadingAudio || isRecording || isProcessing}
-                className={`
-                  group px-4 pt-2 rounded-lg transition-all duration-200
-                  ${(isPlaying || isLoadingAudio) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}
-                `}
-                aria-label="Play translation"
-              >
-                <p className="text-gray-600 italic group-hover:text-gray-800">
-                  ({translatedText})
+              <div className="space-y-2">
+                <p className="text-xl font-medium text-gray-900">
+                  {translatedText}
                 </p>
-              </button>
-              <button
-                onClick={playTranslatedText}
-                disabled={isPlaying || isLoadingAudio || isRecording || isProcessing}
-                className={`
-                  w-8 h-8 rounded-full
-                  flex items-center justify-center
-                  transition-all duration-200
-                  ${(isPlaying || isLoadingAudio || isRecording || isProcessing) 
-                    ? 'opacity-50 cursor-not-allowed' 
-                    : 'hover:bg-gray-100 cursor-pointer'}
-                `}
-                aria-label="Play translation"
-              >
-                <Volume2 className="w-4 h-4 text-gray-600" />
-              </button>
+                <button
+                  onClick={playTranslatedText}
+                  disabled={isPlaying || isLoadingAudio || isRecording || isProcessing}
+                  className={`
+                    w-10 h-10 rounded-full mx-auto
+                    flex items-center justify-center
+                    transition-all duration-200 bg-gray-50
+                    ${(isPlaying || isLoadingAudio || isRecording || isProcessing) 
+                      ? 'opacity-50 cursor-not-allowed' 
+                      : 'hover:bg-gray-100 cursor-pointer'}
+                  `}
+                  aria-label="Play translation"
+                >
+                  <Volume2 className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -234,7 +226,7 @@ export function LanguageSelector({
         fixed bottom-28 left-0 right-0 h-32 bg-transparent 
         flex flex-col items-center justify-center
         transition-opacity duration-300 ease-in-out
-        ${isScrolled ? 'opacity-50' : 'opacity-100'}
+        ${isScrolled ? 'opacity-0' : 'opacity-100'}
       `}>
         <Button
           variant="outline"

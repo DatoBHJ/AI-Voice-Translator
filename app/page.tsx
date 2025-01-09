@@ -11,6 +11,8 @@ interface Message {
   originalText: string;
   translatedText: string;
   timestamp: number;
+  sourceLang: string;
+  targetLang: string;
 }
 
 export default function Home() {
@@ -179,6 +181,8 @@ export default function Home() {
           originalText: transcriptionData.text,
           translatedText: translation,
           timestamp: Date.now(),
+          sourceLang: transcriptionData.language,
+          targetLang: supportedLanguages[1].code
         };
 
         setMessages(prev => [...prev, newMessage]);
@@ -198,7 +202,7 @@ export default function Home() {
   });
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-20">
+    <main className="flex min-h-screen flex-col items-center p-20 pt-12">
       <div className="w-full max-w-md space-y-8">
         {supportedLanguages.length === 0 ? (
           // Language Selection Phase
@@ -213,10 +217,12 @@ export default function Home() {
         ) : (
           // Translation Interface
           <>
-            <div className="text-center mb-8">
-              <p className="text-sm text-gray-500">
-                Translating between <br />{supportedLanguages[0].name} and {supportedLanguages[1].name}
-              </p>
+            <div className="flex justify-center mb-16">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1">
+                <span className="text-xs font-medium text-gray-600">{supportedLanguages[0].name}</span>
+                <span className="text-gray-300 text-[10px] leading-none translate-y-px pb-1">⟷</span>
+                <span className="text-xs font-medium text-gray-600">{supportedLanguages[1].name}</span>
+              </div>
             </div>
             
             <LanguageSelector
@@ -229,11 +235,8 @@ export default function Home() {
             />
 
             <MessageDisplay 
-              messages={messages.map(msg => ({
-                ...msg,
-                sourceLang: supportedLanguages[0].code,
-                targetLang: supportedLanguages[1].code
-              }))} 
+              messages={messages} 
+              currentLanguage={supportedLanguages[0].name}
             />
           </>
         )}

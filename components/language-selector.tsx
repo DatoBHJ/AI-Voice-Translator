@@ -5,7 +5,10 @@ import { useEffect, useState, useRef } from 'react';
 interface LanguageSelectorProps {
   onRecordingStart: () => void;
   onRecordingStop: () => void;
+  onListeningStart: () => void;
+  onListeningStop: () => void;
   isRecording: boolean;
+  isListening: boolean;
   isProcessing?: boolean;
   transcribedText?: string;
   translatedText?: string;
@@ -15,7 +18,10 @@ interface LanguageSelectorProps {
 export function LanguageSelector({
   onRecordingStart,
   onRecordingStop,
+  onListeningStart,
+  onListeningStop,
   isRecording,
+  isListening,
   isProcessing = false,
   transcribedText,
   translatedText,
@@ -98,7 +104,7 @@ export function LanguageSelector({
   };
 
   const playTranslatedText = async () => {
-    if (!translatedText || isPlaying || isLoadingAudio || isRecording || isProcessing) return;
+    if (!translatedText || isPlaying || isLoadingAudio) return;
     
     try {
       cleanupAudio(); // Cleanup any existing audio first
@@ -177,6 +183,14 @@ export function LanguageSelector({
     }
   };
 
+  const handleButtonClick = () => {
+    if (isListening) {
+      onListeningStop();
+    } else {
+      onListeningStart();
+    }
+  };
+
   return (
     <div className="relative min-h-[60vh] bg-white">
       {showWelcomeMessage && (
@@ -203,12 +217,12 @@ export function LanguageSelector({
                 </p>
                 <button
                   onClick={playTranslatedText}
-                  disabled={isPlaying || isLoadingAudio || isRecording || isProcessing}
+                  disabled={isPlaying || isLoadingAudio}
                   className={`
                     w-10 h-10 rounded-full mx-auto
                     flex items-center justify-center
                     transition-all duration-200 bg-gray-50
-                    ${(isPlaying || isLoadingAudio || isRecording || isProcessing) 
+                    ${(isPlaying || isLoadingAudio) 
                       ? 'opacity-50 cursor-not-allowed' 
                       : 'hover:bg-gray-100 cursor-pointer'}
                   `}
@@ -233,18 +247,18 @@ export function LanguageSelector({
           size="lg"
           className={`
             w-24 h-24 min-w-[96px] min-h-[96px] max-w-[96px] max-h-[96px] rounded-full border-4 
-            ${isRecording ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white'}
+            ${isRecording ? 'border-red-500 bg-red-50' : isListening ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'}
             transition-all duration-200 ease-in-out
-            ${(isProcessing || isPlaying || isLoadingAudio) ? 'opacity-50 cursor-not-allowed' : ''}
+            ${(isProcessing) ? 'opacity-50 cursor-not-allowed' : ''}
             shadow-lg
           `}
-          onClick={isRecording ? onRecordingStop : handleRecordingStart}
-          disabled={isProcessing || isPlaying || isLoadingAudio}
+          onClick={handleButtonClick}
+          disabled={isProcessing}
         >
           {isProcessing ? (
             <Loader2 className="w-10 h-10 text-gray-500 animate-spin" />
           ) : (
-            <Mic className={`w-10 h-10 ${isRecording ? 'text-red-500' : 'text-gray-500'}`} />
+            <Mic className={`w-10 h-10 ${isRecording ? 'text-red-500' : isListening ? 'text-green-500' : 'text-gray-500'}`} />
           )}
         </Button>
 
@@ -252,9 +266,10 @@ export function LanguageSelector({
           {isProcessing 
             ? "Processing your speech..."
             : isRecording 
-              ? "Recording... Click to stop"
-              : "\u00A0"}
-        </div>
+              ? "Recording..."
+              : isListening
+                ? "Listening for speech..."
+                : "Click to start"}</div>
       </div>
     </div>
   );

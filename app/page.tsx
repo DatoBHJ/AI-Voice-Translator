@@ -23,6 +23,7 @@ export default function Home() {
   const [translatedText, setTranslatedText] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
   const processingRef = useRef(false);
+  const [isInitialSetup, setIsInitialSetup] = useState(true);
 
   const resetState = useCallback(() => {
     setError(null);
@@ -105,7 +106,6 @@ export default function Home() {
   }, [setTranslatedText]);
 
   const processAudio = async (audioBlob: Blob) => {
-    // Prevent multiple simultaneous processing
     if (processingRef.current) {
       return;
     }
@@ -115,31 +115,24 @@ export default function Home() {
       setIsProcessing(true);
       resetState();
 
-      // Create form data for the audio file
       const formData = new FormData();
       formData.append('audio', audioBlob, 'audio.webm');
 
-      // Send audio for transcription
-      const transcriptionResponse = await fetch('/api/speech', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const transcriptionData = await transcriptionResponse.json();
-
-      if (!transcriptionResponse.ok) {
-        throw new Error(transcriptionData.details || transcriptionData.error || 'Failed to transcribe audio');
-      }
-
-      // Only update state if we're still processing this audio
-      if (!processingRef.current) {
-        return;
-      }
-
-      setTranscribedText(transcriptionData.text);
-
-      if (supportedLanguages.length === 0) {
+      if (isInitialSetup) {
         // Initial language setup phase
+        const transcriptionResponse = await fetch('/api/speech', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const transcriptionData = await transcriptionResponse.json();
+
+        if (!transcriptionResponse.ok) {
+          throw new Error(transcriptionData.details || transcriptionData.error || 'Failed to transcribe audio');
+        }
+
+        setTranscribedText(transcriptionData.text);
+
         const languageResponse = await fetch('/api/language', {
           method: 'POST',
           headers: {
@@ -154,28 +147,28 @@ export default function Home() {
           throw new Error(languageData.error || 'Failed to detect languages');
         }
 
-        // Only update state if we're still processing this audio
-        if (!processingRef.current) {
-          return;
-        }
-
         setSupportedLanguages([
           languageData.sourceLanguage,
           languageData.targetLanguage
         ]);
+        setIsInitialSetup(false);
       } else {
         // Translation phase
-        const translation = await translateText(
-          transcriptionData.text,
-          supportedLanguages
-        );
+        const transcriptionResponse = await fetch('/api/speech', {
+          method: 'POST',
+          body: formData,
+        });
 
-        // Only update state if we're still processing this audio
-        if (!processingRef.current) {
-          return;
+        const transcriptionData = await transcriptionResponse.json();
+
+        if (!transcriptionResponse.ok) {
+          throw new Error(transcriptionData.details || transcriptionData.error || 'Failed to transcribe audio');
         }
 
-        // Add the message to the conversation
+        setTranscribedText(transcriptionData.text);
+
+        const translation = await translateText(transcriptionData.text, supportedLanguages);
+
         const newMessage: Message = {
           id: Date.now().toString(),
           originalText: transcriptionData.text,
@@ -187,7 +180,6 @@ export default function Home() {
 
         setMessages(prev => [...prev, newMessage]);
       }
-
     } catch (error) {
       const message = error instanceof Error ? error.message : 'An unknown error occurred';
       setError(message);
@@ -197,20 +189,25 @@ export default function Home() {
     }
   };
 
-  const { startRecording, stopRecording, isRecording } = useAudioRecorder({
+  const { startRecording, stopRecording, isRecording, startListening, stopListening, isListening } = useAudioRecorder({
     onRecordingComplete: processAudio,
+    silenceThreshold: -40,
+    silenceTimeout: 800,
   });
 
   return (
     <main className="flex min-h-screen flex-col items-center p-20 pt-12">
       <div className="w-full max-w-md space-y-8">
-        {supportedLanguages.length === 0 ? (
+        {isInitialSetup ? (
           // Language Selection Phase
           <LanguageSelector
             isRecording={isRecording}
+            isListening={isListening}
             isProcessing={isProcessing}
             onRecordingStart={startRecording}
             onRecordingStop={stopRecording}
+            onListeningStart={startListening}
+            onListeningStop={stopListening}
             transcribedText={transcribedText}
             showWelcomeMessage={true}
           />
@@ -227,9 +224,12 @@ export default function Home() {
             
             <LanguageSelector
               isRecording={isRecording}
+              isListening={isListening}
               isProcessing={isProcessing}
               onRecordingStart={startRecording}
               onRecordingStop={stopRecording}
+              onListeningStart={startListening}
+              onListeningStop={stopListening}
               transcribedText={transcribedText}
               translatedText={translatedText}
             />

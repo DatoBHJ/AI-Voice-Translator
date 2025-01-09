@@ -19,39 +19,60 @@ A real-time AI-powered bilateral translation platform designed for travelers to 
 ## Project Structure
 ```
 translator-llm/
-├── app/
-│   ├── api/
-│   │   ├── speech/
-│   │   │   └── route.ts          # Speech-to-text API endpoint
-│   │   ├── language/
-│   │   │   └── route.ts          # Language detection endpoint
-│   │   └── translate/
-│   │       └── route.ts          # Translation endpoint
-│   ├── history/
-│   │   └── page.tsx              # Conversation history page
+.
+├── README.md
+├── app
+│   ├── api
+│   │   ├── language
+│   │   ├── og
+│   │   ├── speech
+│   │   └── translate
+│   ├── favicon.ico
 │   ├── globals.css
-│   ├── layout.tsx                # Root layout with sidebar
-│   └── page.tsx                  # Main translation interface
-├── components/
-│   ├── ui/                       # shadcn components
-│   ├── icons/
-│   │   └── index.tsx             # Reusable icons
-│   ├── audio-recorder.tsx        # Recording component
-│   ├── language-selector.tsx     # Language selection UI
-│   ├── message-display.tsx       # Translation display
-│   └── sidebar.tsx               # History sidebar
-├── lib/
-│   ├── types.ts                  # Shared type definitions
-│   ├── audio.ts                  # Audio recording utilities
-│   ├── speech.ts                 # Speech-to-text conversion
-│   ├── language.ts               # Language detection logic
-│   └── translation.ts            # Translation service
-├── hooks/
-│   ├── use-audio.ts             # Audio recording hook
-│   ├── use-translation.ts       # Translation logic hook
-│   └── use-mobile.ts            # Mobile detection hook
-└── public/
-    └── icons/                    # App icons
+│   ├── layout.tsx
+│   └── page.tsx
+├── components
+│   ├── language-selector.tsx
+│   ├── message-display.tsx
+│   └── ui
+│       ├── badge.tsx
+│       ├── button.tsx
+│       ├── calendar.tsx
+│       ├── card.tsx
+│       ├── dropdown-menu.tsx
+│       ├── input.tsx
+│       ├── label.tsx
+│       ├── separator.tsx
+│       ├── sheet.tsx
+│       ├── sidebar.tsx
+│       ├── skeleton.tsx
+│       ├── table.tsx
+│       ├── tabs.tsx
+│       └── tooltip.tsx
+├── components.json
+├── eslint.config.mjs
+├── hooks
+│   ├── use-audio.ts
+│   └── use-mobile.tsx
+├── instructions
+│   └── instruction.md
+├── lib
+│   ├── types.ts
+│   └── utils.ts
+├── next-env.d.ts
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── public
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
+├── tailwind.config.ts
+├── tmp
+└── tsconfig.json
 ```
 
 ## Core Features & Technical Specifications

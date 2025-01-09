@@ -9,8 +9,19 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps)
   const [isRecording, setIsRecording] = useState(false);
   const audioChunksRef = useRef<Blob[]>([]);
   const isProcessingRef = useRef(false);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const cleanup = useCallback(() => {
+    // First stop all tracks in the stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => {
+        track.stop();
+        streamRef.current?.removeTrack(track);
+      });
+      streamRef.current = null;
+    }
+
+    // Then cleanup MediaRecorder
     if (mediaRecorder?.stream) {
       mediaRecorder.stream.getTracks().forEach(track => track.stop());
     }
@@ -49,7 +60,9 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps)
 
     try {
       isProcessingRef.current = true;
-      console.log('Starting recording...');
+      
+      // Ensure any existing streams are properly cleaned up
+      cleanup();
       
       // Check if mediaDevices is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -75,6 +88,7 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps)
 
       console.log('Requesting audio permission...');
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
       console.log('Got audio stream');
 
       // Check if MediaRecorder is supported

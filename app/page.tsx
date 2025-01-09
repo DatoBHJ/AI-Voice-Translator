@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { LanguageSelector } from '@/components/language-selector';
 import { MessageDisplay } from '@/components/message-display';
 import { useAudioRecorder } from '@/hooks/use-audio';
@@ -20,6 +20,13 @@ export default function Home() {
   const [transcribedText, setTranscribedText] = useState<string>('');
   const [translatedText, setTranslatedText] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
+  const processingRef = useRef(false);
+
+  const resetState = useCallback(() => {
+    setError(null);
+    setTranscribedText('');
+    setTranslatedText('');
+  }, []);
 
   const translateText = useCallback(async (text: string, languages: Language[]) => {
     try {
@@ -96,11 +103,15 @@ export default function Home() {
   }, [setTranslatedText]);
 
   const processAudio = async (audioBlob: Blob) => {
+    // Prevent multiple simultaneous processing
+    if (processingRef.current) {
+      return;
+    }
+
     try {
+      processingRef.current = true;
       setIsProcessing(true);
-      setError(null);
-      setTranscribedText('');
-      setTranslatedText('');
+      resetState();
 
       // Create form data for the audio file
       const formData = new FormData();
@@ -116,6 +127,11 @@ export default function Home() {
 
       if (!transcriptionResponse.ok) {
         throw new Error(transcriptionData.details || transcriptionData.error || 'Failed to transcribe audio');
+      }
+
+      // Only update state if we're still processing this audio
+      if (!processingRef.current) {
+        return;
       }
 
       setTranscribedText(transcriptionData.text);
@@ -136,17 +152,26 @@ export default function Home() {
           throw new Error(languageData.error || 'Failed to detect languages');
         }
 
+        // Only update state if we're still processing this audio
+        if (!processingRef.current) {
+          return;
+        }
+
         setSupportedLanguages([
           languageData.sourceLanguage,
           languageData.targetLanguage
         ]);
       } else {
         // Translation phase
-        setIsProcessing(true);
         const translation = await translateText(
           transcriptionData.text,
           supportedLanguages
         );
+
+        // Only update state if we're still processing this audio
+        if (!processingRef.current) {
+          return;
+        }
 
         // Add the message to the conversation
         const newMessage: Message = {
@@ -163,6 +188,7 @@ export default function Home() {
       const message = error instanceof Error ? error.message : 'An unknown error occurred';
       setError(message);
     } finally {
+      processingRef.current = false;
       setIsProcessing(false);
     }
   };

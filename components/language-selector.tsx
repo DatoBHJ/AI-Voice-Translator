@@ -88,12 +88,13 @@ export function LanguageSelector({
   };
 
   const handleRecordingStart = () => {
-    // Ensure all audio and UI states are reset before starting new recording
-    cleanupAudio();
-    setShowTranscription(false);
-    requestAnimationFrame(() => {
-      onRecordingStart();
-    });
+    // If there's any audio playing, stop it immediately
+    if (isPlaying || isLoadingAudio) {
+      cleanupAudio();
+    }
+    
+    // Start recording immediately
+    onRecordingStart();
   };
 
   const playTranslatedText = async () => {
@@ -133,24 +134,13 @@ export function LanguageSelector({
       
       const audio = new Audio();
       
-      // Debug logging for audio states
-      audio.onloadstart = () => {
-        console.log('Audio loading started');
-      };
-      
-      audio.onloadeddata = () => {
-        console.log('Audio data loaded');
-      };
-      
       // Set up audio event handlers before setting source
       audio.oncanplaythrough = () => {
-        console.log('Audio can play through');
         setIsLoadingAudio(false);
         setIsPlaying(true);
       };
       
       audio.onended = () => {
-        console.log('Audio playback ended');
         cleanupAudio();
       };
       
@@ -172,7 +162,6 @@ export function LanguageSelector({
       
       try {
         await audio.play();
-        console.log('Audio playback started');
       } catch (playError) {
         console.error('Audio play failed:', playError);
         cleanupAudio();

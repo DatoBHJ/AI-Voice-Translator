@@ -1,6 +1,6 @@
 import { Button } from './ui/button';
 import { Mic, Loader2, Volume2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 interface LanguageSelectorProps {
   onRecordingStart: () => void;
@@ -23,6 +23,8 @@ export function LanguageSelector({
 }: LanguageSelectorProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,8 +33,23 @@ export function LanguageSelector({
     };
 
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      cleanupAudio();
+    };
   }, []);
+
+  const cleanupAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+    setIsPlaying(false);
+  };
 
   const playTranslatedText = async () => {
     if (!translatedText || isPlaying) return;
@@ -55,18 +72,25 @@ export function LanguageSelector({
 
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
+      audioUrlRef.current = audioUrl;
+      
       const audio = new Audio(audioUrl);
+      audioRef.current = audio;
       
       audio.onended = () => {
-        setIsPlaying(false);
-        URL.revokeObjectURL(audioUrl);
+        cleanupAudio();
       };
 
       await audio.play();
     } catch (error) {
       console.error('Failed to play audio:', error);
-      setIsPlaying(false);
+      cleanupAudio();
     }
+  };
+
+  const handleRecordingStart = () => {
+    cleanupAudio();
+    onRecordingStart();
   };
 
   return (
@@ -133,7 +157,7 @@ export function LanguageSelector({
             ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}
             shadow-lg
           `}
-          onClick={isRecording ? onRecordingStop : onRecordingStart}
+          onClick={isRecording ? onRecordingStop : handleRecordingStart}
           disabled={isProcessing}
         >
           {isProcessing ? (

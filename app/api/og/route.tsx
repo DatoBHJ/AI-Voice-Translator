@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: 'white',
+            backgroundColor: '#000000',
             padding: '40px',
           }}
         >
@@ -24,10 +24,10 @@ export async function GET(req: NextRequest) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '100px',
-              height: '100px',
+              width: '80px',
+              height: '80px',
               borderRadius: '50%',
-              backgroundColor: '#f3f4f6',
+              backgroundColor: '#ffffff',
               marginBottom: '20px',
             }}
           >
@@ -35,20 +35,21 @@ export async function GET(req: NextRequest) {
           </div>
           <div
             style={{
-              fontSize: 60,
-              fontWeight: 800,
+              fontSize: 50,
+              fontWeight: 900,
               letterSpacing: '-0.025em',
-              color: '#111827',
+              color: '#ffffff',
               marginBottom: '16px',
               textAlign: 'center',
+              lineHeight: 1.2,
             }}
           >
             Real-Time AI Translation
           </div>
           <div
             style={{
-              fontSize: 30,
-              color: '#4b5563',
+              fontSize: 26,
+              color: '#888888',
               textAlign: 'center',
               maxWidth: '800px',
             }}
@@ -60,6 +61,10 @@ export async function GET(req: NextRequest) {
       {
         width: 1200,
         height: 630,
+        headers: {
+          'cache-control': 'public, max-age=31536000, immutable',
+          'content-type': 'image/png',
+        },
       },
     );
   } catch (e) {

@@ -20,8 +20,10 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
 };
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  metadataBase: new URL(APP_URL),
   title: "Real-Time AI Translation Platform",
   description: "A minimalist real-time AI-powered translation platform for seamless communication across languages. Perfect for travelers to communicate with locals instantly.",
   keywords: ["translation", "AI", "real-time", "language", "communication", "travel"],
@@ -43,9 +45,15 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Real-Time AI Translation Platform",
-    description: "A minimalist real-time AI-powered translation platform for seamless communication across languages. Perfect for travelers to communicate with locals instantly.",
-    images: ["/api/og"],
+    description: "A minimalist real-time AI-powered translation platform for seamless communication across languages.",
+    images: {
+      url: `${APP_URL}/api/og`,
+      alt: "Real-Time AI Translation Platform Preview",
+      width: 1200,
+      height: 630,
+    },
     creator: "@DatoBHJ",
+    site: "@DatoBHJ",
   },
 };
 

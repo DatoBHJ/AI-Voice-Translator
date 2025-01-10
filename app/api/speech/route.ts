@@ -56,8 +56,11 @@ export async function POST(req: NextRequest) {
     const transcription = await client.audio.transcriptions.create({
       file,
       model: 'whisper-large-v3',
-      temperature: 0.0,
+      temperature: 0.1,
       response_format: 'verbose_json',
+      // prompt: languages 
+      // ? `Please transcribe this audio accurately in its original language. The speaker is using either ${languages[0].name} (${languages[0].code}) or ${languages[1].name} (${languages[1].code}).`
+      // : `Please transcribe this audio accurately in its original language.`
     });
 
 
@@ -75,7 +78,7 @@ export async function POST(req: NextRequest) {
     const segment = transcription.segments[0];
     const qualityChecks = {
       noSpeechProb: segment.no_speech_prob > 0.5,
-      lowConfidence: segment.avg_logprob < -0.6,  
+      lowConfidence: segment.avg_logprob < -0.8,  
       unusualCompression: segment.compression_ratio < 0.3 || segment.compression_ratio > 5.2  
     };
 

@@ -15,6 +15,16 @@ export async function POST(req: NextRequest) {
     
     const formData = await req.formData();
     const audioFile = formData.get('audio');
+    const languagesJson = formData.get('languages');
+    let languages = null;
+    
+    if (languagesJson && typeof languagesJson === 'string') {
+      try {
+        languages = JSON.parse(languagesJson);
+      } catch (e) {
+        console.warn('Failed to parse languages:', e);
+      }
+    }
 
     if (!audioFile || !(audioFile instanceof Blob)) {
       console.error('No valid audio file provided');
@@ -40,14 +50,16 @@ export async function POST(req: NextRequest) {
     );
 
     console.log('Calling Groq API for transcription...');
+    console.log('Languages:', languages); 
 
     // Call Groq's Whisper model
     const transcription = await client.audio.transcriptions.create({
       file,
       model: 'whisper-large-v3',
       temperature: 0.0,
-      response_format: 'verbose_json'
+      response_format: 'verbose_json',
     });
+
 
     console.log('Full response:', transcription);
     console.log('Detected language:', transcription.language);
@@ -63,8 +75,8 @@ export async function POST(req: NextRequest) {
     const segment = transcription.segments[0];
     const qualityChecks = {
       noSpeechProb: segment.no_speech_prob > 0.5,
-      lowConfidence: segment.avg_logprob < -0.5,  // 낮은 신뢰도
-      unusualCompression: segment.compression_ratio < 0.5 || segment.compression_ratio > 5.0  // 범위 확장
+      lowConfidence: segment.avg_logprob < -0.6,  
+      unusualCompression: segment.compression_ratio < 0.3 || segment.compression_ratio > 5.2  
     };
 
     if (qualityChecks.noSpeechProb || qualityChecks.lowConfidence || qualityChecks.unusualCompression) {

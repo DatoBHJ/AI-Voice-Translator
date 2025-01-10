@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 interface VoiceSettingsProps {
   onSettingsChange: (settings: VoiceSettings) => void;
@@ -49,8 +50,20 @@ const environmentPresets = {
 };
 
 export function VoiceSettings({ onSettingsChange, currentSettings }: VoiceSettingsProps) {
+  const [currentMode, setCurrentMode] = useState(() => {
+    // Find the initial mode based on current settings
+    const mode = Object.entries(environmentPresets).find(
+      ([_, preset]) => 
+        preset.settings.silenceThreshold === currentSettings.silenceThreshold &&
+        preset.settings.silenceTimeout === currentSettings.silenceTimeout &&
+        preset.settings.smoothingTimeConstant === currentSettings.smoothingTimeConstant
+    );
+    return mode ? mode[1].name : 'Custom';
+  });
+
   const handlePresetClick = (preset: typeof environmentPresets[keyof typeof environmentPresets]) => {
     onSettingsChange(preset.settings);
+    setCurrentMode(preset.name);
   };
 
   return (
@@ -66,6 +79,7 @@ export function VoiceSettings({ onSettingsChange, currentSettings }: VoiceSettin
       </SheetTrigger>
       <SheetContent className="w-[90vw] sm:max-w-[400px] bg-white">
         <SheetTitle className="text-lg font-medium mb-8">Voice Detection Settings</SheetTitle>
+        <div className="text-[10px] text-gray-400 tracking-widest uppercase -mt-8 mb-8">{currentMode} Mode</div>
         <div className="space-y-8">
           <div className="space-y-6">
             {/* Environment Presets */}

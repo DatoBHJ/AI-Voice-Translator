@@ -26,14 +26,10 @@ export default function Home() {
   const processingRef = useRef(false);
   const [isInitialSetup, setIsInitialSetup] = useState(true);
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettingsType>({
-    silenceThreshold: -65,
-    silenceTimeout: 800,
-    smoothingTimeConstant: 0.92,
+    silenceThreshold: -40,
+    silenceTimeout: 1200,
+    smoothingTimeConstant: 0.9,
   });
-
-  const resetState = useCallback(() => {
-    setError(null);
-  }, []);
 
   const translateText = useCallback(async (text: string, languages: Language[]) => {
     try {
@@ -179,6 +175,7 @@ export default function Home() {
         setIsInitialSetup(false);
       } else {
         // Translation phase
+        formData.append('languages', JSON.stringify(supportedLanguages));
         const transcriptionResponse = await fetch('/api/speech', {
           method: 'POST',
           body: formData,

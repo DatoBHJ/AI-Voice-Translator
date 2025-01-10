@@ -5,6 +5,7 @@ import { LanguageSelector } from '@/components/language-selector';
 import { MessageDisplay } from '@/components/message-display';
 import { useAudioRecorder } from '@/hooks/use-audio';
 import { Language } from '@/lib/types';
+import { VoiceSettings, VoiceSettings as VoiceSettingsType } from '@/components/voice-settings';
 
 interface Message {
   id: string;
@@ -24,6 +25,11 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const processingRef = useRef(false);
   const [isInitialSetup, setIsInitialSetup] = useState(true);
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettingsType>({
+    silenceThreshold: -35,
+    silenceTimeout: 900,
+    smoothingTimeConstant: 0.9,
+  });
 
   const resetState = useCallback(() => {
     setError(null);
@@ -191,12 +197,16 @@ export default function Home() {
 
   const { startRecording, stopRecording, isRecording, startListening, stopListening, isListening } = useAudioRecorder({
     onRecordingComplete: processAudio,
-    silenceThreshold: -40,
-    silenceTimeout: 800,
+    silenceThreshold: voiceSettings.silenceThreshold,
+    silenceTimeout: voiceSettings.silenceTimeout,
   });
 
   return (
     <main className="flex min-h-screen flex-col items-center p-20 pt-12">
+      <VoiceSettings
+        currentSettings={voiceSettings}
+        onSettingsChange={setVoiceSettings}
+      />
       <div className="w-full max-w-md space-y-8">
         {isInitialSetup ? (
           // Language Selection Phase

@@ -4,12 +4,14 @@ interface UseAudioRecorderProps {
   onRecordingComplete: (blob: Blob) => Promise<void>;
   silenceThreshold?: number; // dB threshold for silence detection
   silenceTimeout?: number; // ms to wait before stopping
+  smoothingTimeConstant?: number; // smoothing time constant for analyser
 }
 
 export function useAudioRecorder({ 
   onRecordingComplete,
   silenceThreshold = -50,
-  silenceTimeout = 1500
+  silenceTimeout = 1500,
+  smoothingTimeConstant = 0.85
 }: UseAudioRecorderProps) {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -103,9 +105,9 @@ export function useAudioRecorder({
         const source = audioContextRef.current.createMediaStreamSource(stream);
         analyserRef.current = audioContextRef.current.createAnalyser();
         analyserRef.current.fftSize = 2048;
-        analyserRef.current.minDecibels = -90;
+        analyserRef.current.minDecibels = -70;
         analyserRef.current.maxDecibels = -10;
-        analyserRef.current.smoothingTimeConstant = 0.85;
+        analyserRef.current.smoothingTimeConstant = 0.88;
         source.connect(analyserRef.current);
       }
       
@@ -282,7 +284,7 @@ export function useAudioRecorder({
         analyserRef.current.fftSize = 2048;
         analyserRef.current.minDecibels = -90;
         analyserRef.current.maxDecibels = -10;
-        analyserRef.current.smoothingTimeConstant = 0.85;
+        analyserRef.current.smoothingTimeConstant = smoothingTimeConstant;
         source.connect(analyserRef.current);
       } else {
         console.log('Attempting to resume existing audio context');
@@ -290,6 +292,9 @@ export function useAudioRecorder({
         if (audioContextRef.current.state === 'suspended') {
           await audioContextRef.current.resume();
           console.log('Audio context resumed');
+          
+          // Update the smoothing time constant
+          analyserRef.current.smoothingTimeConstant = smoothingTimeConstant;
           
           // Reconnect the stream to the analyser
           const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
@@ -306,7 +311,7 @@ export function useAudioRecorder({
       cleanup(true);
       throw error;
     }
-  }, [cleanup]);
+  }, [cleanup, smoothingTimeConstant]);
 
   const stopListening = useCallback(() => {
     console.log('stopListening called, current state:', {

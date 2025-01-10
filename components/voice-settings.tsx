@@ -24,27 +24,27 @@ const environmentPresets = {
     name: "Quiet Room",
     description: "For office or home",
     settings: {
-      silenceThreshold: -50,
-      silenceTimeout: 1000,
-      smoothingTimeConstant: 0.8,
+      silenceThreshold: -58,
+      silenceTimeout: 800,
+      smoothingTimeConstant: 0.75,
     },
   },
   moderate: {
     name: "Coffee Shop",
     description: "For cafes or restaurants",
     settings: {
-      silenceThreshold: -50,
-      silenceTimeout: 1200,
-      smoothingTimeConstant: 0.9,
+      silenceThreshold: -52,
+      silenceTimeout: 1000,
+      smoothingTimeConstant: 0.8,
     },
   },
   noisy: {
     name: "Street",
     description: "For outdoor or noisy places",
     settings: {
-      silenceThreshold: -35,
-      silenceTimeout: 1500,
-      smoothingTimeConstant: 0.95,
+      silenceThreshold: -45,
+      silenceTimeout: 1200,
+      smoothingTimeConstant: 0.85,
     },
   },
 };

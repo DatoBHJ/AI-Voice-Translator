@@ -26,9 +26,9 @@ export default function Home() {
   const processingRef = useRef(false);
   const [isInitialSetup, setIsInitialSetup] = useState(true);
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettingsType>({
-    silenceThreshold: -50,
-    silenceTimeout: 1200,
-    smoothingTimeConstant: 0.9,
+    silenceThreshold: -55,
+    silenceTimeout: 1000,
+    smoothingTimeConstant: 0.8,
   });
 
   const translateText = useCallback(async (text: string, languages: Language[]) => {

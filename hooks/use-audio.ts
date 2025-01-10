@@ -104,7 +104,7 @@ export function useAudioRecorder({
         audioContextRef.current = new AudioContext();
         const source = audioContextRef.current.createMediaStreamSource(stream);
         analyserRef.current = audioContextRef.current.createAnalyser();
-        analyserRef.current.fftSize = 2048;
+        analyserRef.current.fftSize = 1024;
         analyserRef.current.minDecibels = -65;
         analyserRef.current.maxDecibels = -10;
         analyserRef.current.smoothingTimeConstant = smoothingTimeConstant;
@@ -118,7 +118,7 @@ export function useAudioRecorder({
       // Create new MediaRecorder instance
       const recorder = new MediaRecorder(streamRef.current, {
         mimeType,
-        audioBitsPerSecond: 128000
+        audioBitsPerSecond: 96000
       });
       
       recorder.ondataavailable = (event) => {
@@ -156,8 +156,8 @@ export function useAudioRecorder({
         cleanup(true);
       };
 
-      // Start recording and request data every 500ms
-      recorder.start(500);
+      // Start recording and request data every 250ms
+      recorder.start(250);
       console.log('Recorder started');
       setMediaRecorder(recorder);
       setIsRecording(true);

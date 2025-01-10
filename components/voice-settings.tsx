@@ -33,7 +33,7 @@ const environmentPresets = {
     name: "Coffee Shop",
     description: "For cafes or restaurants",
     settings: {
-      silenceThreshold: -40,
+      silenceThreshold: -50,
       silenceTimeout: 1200,
       smoothingTimeConstant: 0.9,
     },

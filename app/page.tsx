@@ -26,7 +26,7 @@ export default function Home() {
   const processingRef = useRef(false);
   const [isInitialSetup, setIsInitialSetup] = useState(true);
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettingsType>({
-    silenceThreshold: -40,
+    silenceThreshold: -50,
     silenceTimeout: 1200,
     smoothingTimeConstant: 0.9,
   });

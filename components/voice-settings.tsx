@@ -59,9 +59,9 @@ export function VoiceSettings({ onSettingsChange, currentSettings }: VoiceSettin
         <Button
           variant="outline"
           size="icon"
-          className="fixed top-4 right-4 h-10 w-10 rounded-full border-none shadow-none"
+          className="fixed top-4 right-4 h-12 w-12 rounded-full border-none shadow-none"
         >
-          <Settings className="h-4 w-4" />
+          <Settings className="h-6 w-6 text-gray-500" />
         </Button>
       </SheetTrigger>
       <SheetContent className="w-[90vw] sm:max-w-[400px] bg-white">

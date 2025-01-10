@@ -18,6 +18,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Filter out too short or meaningless text
+  const cleanText = text.trim();
+  if (cleanText.length < 2 || /^[.,!?]+$/.test(cleanText)) {
+    return new Response(
+      JSON.stringify({ error: 'Text too short or meaningless' }),
+      { status: 400 }
+    );
+  }
+
   const prompt = `You are a professional translator for ${languages[0].name} and ${languages[1].name}.
 First, determine if the input text is in ${languages[0].name} or ${languages[1].name}.
 Then, translate the text to the other language while maintaining the original meaning and nuance.

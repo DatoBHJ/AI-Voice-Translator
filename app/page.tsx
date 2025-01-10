@@ -26,15 +26,13 @@ export default function Home() {
   const processingRef = useRef(false);
   const [isInitialSetup, setIsInitialSetup] = useState(true);
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettingsType>({
-    silenceThreshold: -35,
-    silenceTimeout: 900,
-    smoothingTimeConstant: 0.9,
+    silenceThreshold: -65,
+    silenceTimeout: 800,
+    smoothingTimeConstant: 0.92,
   });
 
   const resetState = useCallback(() => {
     setError(null);
-    setTranscribedText('');
-    setTranslatedText('');
   }, []);
 
   const translateText = useCallback(async (text: string, languages: Language[]) => {
@@ -81,6 +79,9 @@ export default function Home() {
                   
                   // Check for the completion message
                   if (data === '[DONE]') {
+                    if (translation) {  // 번역이 있을 때만 업데이트
+                      setTranslatedText(translation);
+                    }
                     resolve(translation);
                     return;
                   }
@@ -90,13 +91,18 @@ export default function Home() {
                     const parsed = JSON.parse(data);
                     if (parsed.content) {
                       translation += parsed.content;
-                      setTranslatedText(translation);
+                      if (translation.trim()) {  // 의미 있는 번역이 있을 때만 업데이트
+                        setTranslatedText(translation);
+                      }
                     }
                   } catch (e) {
                     console.error('Error parsing SSE message:', e);
                   }
                 }
               }
+            }
+            if (translation) {  // 번역이 있을 때만 업데이트
+              setTranslatedText(translation);
             }
             resolve(translation);
           } catch (error) {
@@ -116,10 +122,16 @@ export default function Home() {
       return;
     }
 
+    // Check if the audio is too short (less than 0.5 seconds)
+    if (audioBlob.size < 15000) {  // Roughly 0.5s of audio at 128kbps
+      console.log('Audio too short, ignoring');
+      return;
+    }
+
     try {
       processingRef.current = true;
       setIsProcessing(true);
-      resetState();
+      setError(null);
 
       const formData = new FormData();
       formData.append('audio', audioBlob, 'audio.webm');
@@ -134,6 +146,13 @@ export default function Home() {
         const transcriptionData = await transcriptionResponse.json();
 
         if (!transcriptionResponse.ok) {
+          // Ignore quality check failures silently
+          if (transcriptionData.error === 'Low quality speech detected' || 
+              transcriptionData.error === 'No speech detected' ||
+              transcriptionData.error === 'Transcription too short') {
+            console.log('Ignoring low quality audio:', transcriptionData.error);
+            return;
+          }
           throw new Error(transcriptionData.details || transcriptionData.error || 'Failed to transcribe audio');
         }
 
@@ -168,6 +187,13 @@ export default function Home() {
         const transcriptionData = await transcriptionResponse.json();
 
         if (!transcriptionResponse.ok) {
+          // Ignore quality check failures silently
+          if (transcriptionData.error === 'Low quality speech detected' || 
+              transcriptionData.error === 'No speech detected' ||
+              transcriptionData.error === 'Transcription too short') {
+            console.log('Ignoring low quality audio:', transcriptionData.error);
+            return;
+          }
           throw new Error(transcriptionData.details || transcriptionData.error || 'Failed to transcribe audio');
         }
 

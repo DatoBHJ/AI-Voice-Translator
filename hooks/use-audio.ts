@@ -105,9 +105,9 @@ export function useAudioRecorder({
         const source = audioContextRef.current.createMediaStreamSource(stream);
         analyserRef.current = audioContextRef.current.createAnalyser();
         analyserRef.current.fftSize = 2048;
-        analyserRef.current.minDecibels = -70;
+        analyserRef.current.minDecibels = -65;
         analyserRef.current.maxDecibels = -10;
-        analyserRef.current.smoothingTimeConstant = 0.88;
+        analyserRef.current.smoothingTimeConstant = smoothingTimeConstant;
         source.connect(analyserRef.current);
       }
       
@@ -142,12 +142,11 @@ export function useAudioRecorder({
           } catch (error) {
             console.error('Error processing recording:', error);
           }
-          
-          audioChunksRef.current = [];
         } else {
-          console.error('No audio data recorded');
+          console.log('No significant audio detected - ignoring');
         }
-
+        
+        audioChunksRef.current = [];
         // Only do partial cleanup
         cleanup(false);
       };
@@ -282,7 +281,7 @@ export function useAudioRecorder({
         const source = audioContextRef.current.createMediaStreamSource(stream);
         analyserRef.current = audioContextRef.current.createAnalyser();
         analyserRef.current.fftSize = 2048;
-        analyserRef.current.minDecibels = -90;
+        analyserRef.current.minDecibels = -65;
         analyserRef.current.maxDecibels = -10;
         analyserRef.current.smoothingTimeConstant = smoothingTimeConstant;
         source.connect(analyserRef.current);

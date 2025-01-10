@@ -23,27 +23,27 @@ const environmentPresets = {
     name: "Quiet Room",
     description: "For office or home",
     settings: {
-      silenceThreshold: -40,
-      silenceTimeout: 800,
-      smoothingTimeConstant: 0.85,
+      silenceThreshold: -50,
+      silenceTimeout: 1000,
+      smoothingTimeConstant: 0.8,
     },
   },
   moderate: {
     name: "Coffee Shop",
     description: "For cafes or restaurants",
     settings: {
-      silenceThreshold: -30,
-      silenceTimeout: 1000,
-      smoothingTimeConstant: 0.92,
+      silenceThreshold: -40,
+      silenceTimeout: 1200,
+      smoothingTimeConstant: 0.9,
     },
   },
   noisy: {
     name: "Street",
     description: "For outdoor or noisy places",
     settings: {
-      silenceThreshold: -25,
-      silenceTimeout: 1200,
-      smoothingTimeConstant: 0.98,
+      silenceThreshold: -35,
+      silenceTimeout: 1500,
+      smoothingTimeConstant: 0.95,
     },
   },
 };
@@ -98,7 +98,7 @@ export function VoiceSettings({ onSettingsChange, currentSettings }: VoiceSettin
               <div className="space-y-6">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <label className="text-sm">Voice Sensitivity</label>
+                    <label className="text-sm">Voice Detection Sensitivity</label>
                     <span className="text-xs text-gray-500">{currentSettings.silenceThreshold}dB</span>
                   </div>
                   <Slider
@@ -114,7 +114,7 @@ export function VoiceSettings({ onSettingsChange, currentSettings }: VoiceSettin
 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <label className="text-sm">Pause Duration</label>
+                    <label className="text-sm">Pause Length Before Stop</label>
                     <span className="text-xs text-gray-500">{currentSettings.silenceTimeout}ms</span>
                   </div>
                   <Slider
@@ -130,16 +130,16 @@ export function VoiceSettings({ onSettingsChange, currentSettings }: VoiceSettin
 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <label className="text-sm">Voice Smoothing</label>
+                    <label className="text-sm">Background Noise Reduction</label>
                     <span className="text-xs text-gray-500">
-                      {currentSettings.smoothingTimeConstant.toFixed(2)}
+                      {Math.round(currentSettings.smoothingTimeConstant * 100)}%
                     </span>
                   </div>
                   <Slider
                     value={[currentSettings.smoothingTimeConstant * 100]}
                     min={50}
                     max={100}
-                    step={5}
+                    step={10}
                     onValueChange={([value]) =>
                       onSettingsChange({
                         ...currentSettings,

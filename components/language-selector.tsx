@@ -30,19 +30,21 @@ export function LanguageSelector({
   const [isScrolled, setIsScrolled] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
-  const [showTranscription, setShowTranscription] = useState(false);
+  const previousTranscribedTextRef = useRef<string | undefined>(transcribedText);
+  const previousTranslatedTextRef = useRef<string | undefined>(translatedText);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Reset transcription display when recording starts or processing state changes
+  // Update previous text refs when new text arrives
   useEffect(() => {
-    if (isRecording || isProcessing) {
-      setShowTranscription(false);
-    } else if (transcribedText && !isRecording && !isProcessing) {
-      setShowTranscription(true);
+    if (transcribedText) {
+      previousTranscribedTextRef.current = transcribedText;
     }
-  }, [isRecording, isProcessing, transcribedText]);
+    if (translatedText) {
+      previousTranslatedTextRef.current = translatedText;
+    }
+  }, [transcribedText, translatedText]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -204,16 +206,16 @@ export function LanguageSelector({
         </div>
       )}
 
-      {showTranscription && (
+      {(previousTranscribedTextRef.current || transcribedText) && (
         <div className="text-center mt-10 space-y-4">
           <p className="text-sm text-gray-500">
-            "{transcribedText}"
+            "{previousTranscribedTextRef.current || transcribedText}"
           </p>
-          {translatedText && !isRecording && !isProcessing && (
+          {(previousTranslatedTextRef.current || translatedText) && (
             <div className="flex flex-col items-center">
               <div className="space-y-2">
                 <p className="text-xl font-medium text-gray-900">
-                  {translatedText}
+                  {previousTranslatedTextRef.current || translatedText}
                 </p>
                 <button
                   onClick={playTranslatedText}

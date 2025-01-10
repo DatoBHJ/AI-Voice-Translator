@@ -52,9 +52,44 @@ export async function POST(req: NextRequest) {
     console.log('Full response:', transcription);
     console.log('Detected language:', transcription.language);
     
+    // Check if the audio is likely not speech
+    if (!transcription.segments || transcription.segments.length === 0) {
+      console.log('No segments found in transcription');
+      return NextResponse.json({ 
+        error: 'No speech detected',
+      }, { status: 400 });
+    }
+
+    const segment = transcription.segments[0];
+    const qualityChecks = {
+      noSpeechProb: segment.no_speech_prob > 0.5,
+      lowConfidence: segment.avg_logprob < -0.5,  // 낮은 신뢰도
+      unusualCompression: segment.compression_ratio < 0.5 || segment.compression_ratio > 5.0  // 범위 확장
+    };
+
+    if (qualityChecks.noSpeechProb || qualityChecks.lowConfidence || qualityChecks.unusualCompression) {
+      console.log('Speech quality issues detected:', qualityChecks);
+      return NextResponse.json({ 
+        error: 'Low quality speech detected',
+        details: qualityChecks
+      }, { status: 400 });
+    }
+    
+    // Clean up transcribed text
+    const cleanText = transcription.text.trim();
+    if (cleanText.length < 2) {
+      return NextResponse.json({ 
+        error: 'Transcription too short',
+      }, { status: 400 });
+    }
+    
     return NextResponse.json({ 
-      text: transcription.text,
-      language: transcription.language 
+      text: cleanText,
+      language: transcription.language,
+      quality: {
+        confidence: Math.exp(segment.avg_logprob),  // Convert log probability to probability
+        speechProb: 1 - segment.no_speech_prob
+      }
     });
   } catch (error) {
     console.error('Speech-to-text error:', error);

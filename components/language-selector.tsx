@@ -34,6 +34,7 @@ export function LanguageSelector({
   const [isScrolled, setIsScrolled] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const previousTranscribedTextRef = useRef<string | undefined>(transcribedText);
   const previousTranslatedTextRef = useRef<string | undefined>(translatedText);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -41,6 +42,42 @@ export function LanguageSelector({
   const abortControllerRef = useRef<AbortController | null>(null);
   const ttsEnableTimeRef = useRef<number>(0);
   const lastTranslationTimeRef = useRef<number>(0);
+  const silentAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize audio context and silent audio
+  useEffect(() => {
+    // Create a silent audio element
+    const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV");
+    silentAudio.setAttribute('playsinline', 'true');
+    silentAudio.setAttribute('webkit-playsinline', 'true');
+    silentAudioRef.current = silentAudio;
+
+    // Create audio context
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    setAudioContext(ctx);
+
+    // Resume audio context on user interaction
+    const resumeAudioContext = () => {
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      silentAudio.play().catch(() => {});
+      document.removeEventListener('touchstart', resumeAudioContext);
+      document.removeEventListener('click', resumeAudioContext);
+    };
+
+    document.addEventListener('touchstart', resumeAudioContext);
+    document.addEventListener('click', resumeAudioContext);
+
+    return () => {
+      document.removeEventListener('touchstart', resumeAudioContext);
+      document.removeEventListener('click', resumeAudioContext);
+      if (silentAudioRef.current) {
+        silentAudioRef.current.pause();
+        silentAudioRef.current = null;
+      }
+    };
+  }, []);
 
   // Update previous text refs when new text arrives
   useEffect(() => {
@@ -72,9 +109,15 @@ export function LanguageSelector({
     const shouldPlayTTS = lastTranslationTimeRef.current >= ttsEnableTimeRef.current;
     
     if (shouldPlayTTS) {
+      // Try to resume audio context and play silent audio first
+      if (audioContext?.state === 'suspended') {
+        audioContext.resume();
+      }
+      silentAudioRef.current?.play().catch(() => {});
+
       // Wait longer to ensure we have the complete translation
       const timeoutId = setTimeout(() => {
-        // Double check if we have a complete sentence (ends with punctuation or is unchanged for a while)
+        // Double check if we have a complete sentence
         if (
           translatedText.endsWith('.') || 
           translatedText.endsWith('!') || 
@@ -87,7 +130,7 @@ export function LanguageSelector({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [translatedText, isTTSEnabled]);
+  }, [translatedText, isTTSEnabled, audioContext]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -152,6 +195,12 @@ export function LanguageSelector({
     if (!translatedText || isPlaying || isLoadingAudio) return;
     
     try {
+      // Try to resume audio context and play silent audio first
+      if (audioContext?.state === 'suspended') {
+        await audioContext.resume();
+      }
+      await silentAudioRef.current?.play().catch(() => {});
+
       cleanupAudio(); // Cleanup any existing audio first
       setIsLoadingAudio(true);
       
@@ -184,6 +233,8 @@ export function LanguageSelector({
       audioUrlRef.current = audioUrl;
       
       const audio = new Audio();
+      audio.setAttribute('playsinline', 'true');
+      audio.setAttribute('webkit-playsinline', 'true');
       
       // Set up audio event handlers before setting source
       audio.oncanplaythrough = () => {
@@ -212,9 +263,30 @@ export function LanguageSelector({
       audio.src = audioUrl;
       
       try {
-        await audio.play();
-      } catch (playError) {
-        console.error('Audio play failed:', playError);
+        // Try multiple times with increasing delays
+        for (let i = 0; i < 3; i++) {
+          try {
+            await audio.play();
+            break;
+          } catch (error) {
+            if (i === 2) throw error;
+            await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, i)));
+            // Try to resume audio context and play silent audio before retrying
+            if (audioContext?.state === 'suspended') {
+              await audioContext.resume();
+            }
+            await silentAudioRef.current?.play().catch(() => {});
+          }
+        }
+      } catch (error) {
+        const playError = error as Error & { code?: number };
+        console.error('Audio play failed:', {
+          error: playError,
+          name: playError.name,
+          message: playError.message,
+          code: playError.code,
+          userAgent: navigator.userAgent
+        });
         cleanupAudio();
         throw playError;
       }
@@ -273,6 +345,23 @@ export function LanguageSelector({
                 <p className="text-xl font-medium text-gray-900">
                   {translatedText}
                 </p>
+                {isTTSEnabled && (
+                  <button
+                    onClick={playTranslatedText}
+                    disabled={isPlaying || isLoadingAudio || isRecording || isProcessing}
+                    className={`
+                      w-10 h-10 rounded-full mx-auto
+                      flex items-center justify-center
+                      transition-all duration-200 bg-gray-50
+                      ${(isPlaying || isLoadingAudio || isRecording || isProcessing) 
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : 'hover:bg-gray-100 cursor-pointer'}
+                    `}
+                    aria-label="Play translation"
+                  >
+                    <Volume2 className="w-5 h-5 text-gray-600" />
+                  </button>
+                )}
               </div>
             </div>
           )}

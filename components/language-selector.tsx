@@ -13,6 +13,8 @@ interface LanguageSelectorProps {
   transcribedText?: string;
   translatedText?: string;
   showWelcomeMessage?: boolean;
+  currentMode?: string;
+  isTTSEnabled: boolean;
 }
 
 export function LanguageSelector({
@@ -25,7 +27,9 @@ export function LanguageSelector({
   isProcessing = false,
   transcribedText,
   translatedText,
-  showWelcomeMessage = false
+  showWelcomeMessage = false,
+  currentMode = "Quiet Room",
+  isTTSEnabled
 }: LanguageSelectorProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -35,16 +39,55 @@ export function LanguageSelector({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const ttsEnableTimeRef = useRef<number>(0);
+  const lastTranslationTimeRef = useRef<number>(0);
 
   // Update previous text refs when new text arrives
   useEffect(() => {
     if (transcribedText) {
       previousTranscribedTextRef.current = transcribedText;
     }
-    if (translatedText) {
+  }, [transcribedText]);
+
+  // Track when TTS is enabled
+  useEffect(() => {
+    if (isTTSEnabled) {
+      ttsEnableTimeRef.current = Date.now();
+    }
+  }, [isTTSEnabled]);
+
+  // Track when new translations arrive
+  useEffect(() => {
+    if (translatedText !== previousTranslatedTextRef.current) {
+      lastTranslationTimeRef.current = Date.now();
       previousTranslatedTextRef.current = translatedText;
     }
-  }, [transcribedText, translatedText]);
+  }, [translatedText]);
+
+  // Handle TTS playback
+  useEffect(() => {
+    if (!translatedText || !isTTSEnabled) return;
+
+    // Only play TTS if the translation came after TTS was enabled
+    const shouldPlayTTS = lastTranslationTimeRef.current >= ttsEnableTimeRef.current;
+    
+    if (shouldPlayTTS) {
+      // Wait longer to ensure we have the complete translation
+      const timeoutId = setTimeout(() => {
+        // Double check if we have a complete sentence (ends with punctuation or is unchanged for a while)
+        if (
+          translatedText.endsWith('.') || 
+          translatedText.endsWith('!') || 
+          translatedText.endsWith('?') ||
+          translatedText === previousTranslatedTextRef.current
+        ) {
+          playTranslatedText();
+        }
+      }, 1000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [translatedText, isTTSEnabled]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -196,13 +239,26 @@ export function LanguageSelector({
   return (
     <div className="relative min-h-[60vh] bg-white">
       {showWelcomeMessage && (
-        <div className="text-gray-500 text-center space-y-0.5 text-sm pt-20">
-          <p>"English and Japanese"</p>
-          <p>"한국어랑 스페인어"</p>
-          <p>"Français et 中文"</p>
-          <p>Deutsch und العربية</p>
-          <br /> 
-          <p className="text-gray-300 mt-2">name two languages</p>
+        <div className="text-center space-y-8 pt-24">
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <p className="text-neutral-600 text-sm tracking-wide">
+                "English Spanish"
+              </p>
+              <p className="text-neutral-600 text-sm tracking-wide">
+                "한국어 中文"
+              </p>
+              <p className="text-neutral-600 text-sm tracking-wide">
+                "Русский алрбية"
+              </p>
+              <p className="text-neutral-600 text-sm tracking-wide">
+                "Español Português"
+              </p>
+              <p className="text-neutral-600 text-sm tracking-wide">
+                "日本語 Deutsch"
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -211,27 +267,12 @@ export function LanguageSelector({
           <p className="text-sm text-gray-500">
             "{previousTranscribedTextRef.current || transcribedText}"
           </p>
-          {(previousTranslatedTextRef.current || translatedText) && (
+          {(translatedText) && (
             <div className="flex flex-col items-center">
               <div className="space-y-2">
                 <p className="text-xl font-medium text-gray-900">
-                  {previousTranslatedTextRef.current || translatedText}
+                  {translatedText}
                 </p>
-                <button
-                  onClick={playTranslatedText}
-                  disabled={isPlaying || isLoadingAudio}
-                  className={`
-                    w-10 h-10 rounded-full mx-auto
-                    flex items-center justify-center
-                    transition-all duration-200 bg-gray-50
-                    ${(isPlaying || isLoadingAudio) 
-                      ? 'opacity-50 cursor-not-allowed' 
-                      : 'hover:bg-gray-100 cursor-pointer'}
-                  `}
-                  aria-label="Play translation"
-                >
-                  <Volume2 className="w-5 h-5 text-gray-600" />
-                </button>
               </div>
             </div>
           )}
@@ -248,30 +289,35 @@ export function LanguageSelector({
           variant="outline"
           size="lg"
           className={`
-            w-24 h-24 min-w-[96px] min-h-[96px] max-w-[96px] max-h-[96px] rounded-full border-4 
-            ${isRecording ? 'border-red-500 bg-red-50' : isListening ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'}
-            transition-all duration-200 ease-in-out
+            w-24 h-24 min-w-[96px] min-h-[96px] max-w-[96px] max-h-[96px] rounded-full border 
+            ${isRecording ? 'border-red-500' : isListening ? 'border-green-500' : 'border-neutral-200'} 
+            bg-white hover:bg-white
+            transition-all duration-500 ease-in-out
             ${(isProcessing) ? 'opacity-50 cursor-not-allowed' : ''}
-            shadow-lg
           `}
           onClick={handleButtonClick}
           disabled={isProcessing}
         >
           {isProcessing ? (
-            <Loader2 className="w-10 h-10 text-gray-500 animate-spin" />
+            <Loader2 className="w-8 h-8 text-neutral-400 animate-spin" />
           ) : (
-            <Mic className={`w-10 h-10 ${isRecording ? 'text-red-500' : isListening ? 'text-green-500' : 'text-gray-500'}`} />
+            <Mic className={`w-8 h-8 ${isRecording ? 'text-red-500' : isListening ? 'text-green-500' : 'text-neutral-400'}`} />
           )}
         </Button>
 
-        <div className="h-6 text-gray-500 text-center text-sm mt-4">
-          {isProcessing 
-            ? "Processing your speech..."
-            : isRecording 
-              ? "Recording..."
-              : isListening
-                ? "Listening for speech..."
-                : "Click to start"}</div>
+        <div className="flex flex-col items-center mt-6">
+          <div className="text-[10px] tracking-[0.25em] uppercase text-neutral-400 font-light">
+            {isProcessing 
+              ? "Processing"
+              : isRecording 
+                ? "Recording"
+                : isListening && showWelcomeMessage
+                  ? "Speak Two"
+                  : isListening
+                    ? "Speaking"
+                    : "Tap"}
+          </div>
+        </div>
       </div>
     </div>
   );

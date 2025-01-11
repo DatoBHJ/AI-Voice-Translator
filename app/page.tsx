@@ -5,7 +5,8 @@ import { LanguageSelector } from '@/components/language-selector';
 import { MessageDisplay } from '@/components/message-display';
 import { useAudioRecorder } from '@/hooks/use-audio';
 import { Language } from '@/lib/types';
-import { VoiceSettings, VoiceSettings as VoiceSettingsType } from '@/components/voice-settings';
+import { VoiceSettings, VoiceSettings as VoiceSettingsType, defaultVoiceSettings } from '@/components/voice-settings';
+import { Button } from '@/components/ui/button';
 
 interface Message {
   id: string;
@@ -25,11 +26,9 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const processingRef = useRef(false);
   const [isInitialSetup, setIsInitialSetup] = useState(true);
-  const [voiceSettings, setVoiceSettings] = useState<VoiceSettingsType>({
-    silenceThreshold: -55,
-    silenceTimeout: 1000,
-    smoothingTimeConstant: 0.8,
-  });
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettingsType>(defaultVoiceSettings);
+  const [currentMode, setCurrentMode] = useState("Quiet Room");
+  const [isTTSEnabled, setIsTTSEnabled] = useState(true);
 
   const translateText = useCallback(async (text: string, languages: Language[]) => {
     try {
@@ -75,7 +74,7 @@ export default function Home() {
                   
                   // Check for the completion message
                   if (data === '[DONE]') {
-                    if (translation) {  // 번역이 있을 때만 업데이트
+                    if (translation) {
                       setTranslatedText(translation);
                     }
                     resolve(translation);
@@ -87,9 +86,7 @@ export default function Home() {
                     const parsed = JSON.parse(data);
                     if (parsed.content) {
                       translation += parsed.content;
-                      if (translation.trim()) {  // 의미 있는 번역이 있을 때만 업데이트
-                        setTranslatedText(translation);
-                      }
+                      setTranslatedText(translation);
                     }
                   } catch (e) {
                     console.error('Error parsing SSE message:', e);
@@ -97,7 +94,7 @@ export default function Home() {
                 }
               }
             }
-            if (translation) {  // 번역이 있을 때만 업데이트
+            if (translation) {
               setTranslatedText(translation);
             }
             resolve(translation);
@@ -224,15 +221,63 @@ export default function Home() {
     silenceTimeout: voiceSettings.silenceTimeout,
   });
 
+  const handleVoiceSettingsChange = (newSettings: VoiceSettingsType) => {
+    setVoiceSettings(newSettings);
+    
+    // Define preset values
+    const presets = {
+      quiet: {
+        silenceThreshold: -58,
+        silenceTimeout: 800,
+        smoothingTimeConstant: 0.75
+      },
+      moderate: {
+        silenceThreshold: -52,
+        silenceTimeout: 1000,
+        smoothingTimeConstant: 0.8
+      },
+      street: {
+        silenceThreshold: -45,
+        silenceTimeout: 1200,
+        smoothingTimeConstant: 0.85
+      }
+    };
+
+    // Find matching preset
+    if (JSON.stringify(newSettings) === JSON.stringify(presets.quiet)) {
+      setCurrentMode("Quiet Room");
+    } else if (JSON.stringify(newSettings) === JSON.stringify(presets.moderate)) {
+      setCurrentMode("Coffee Shop");
+    } else {
+      setCurrentMode("Street");
+    }
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center p-20 pt-12">
-      <VoiceSettings
-        currentSettings={voiceSettings}
-        onSettingsChange={setVoiceSettings}
-      />
-      <div className="w-full max-w-md space-y-8">
+      <div className="fixed top-0 left-0 right-0 h-16 flex items-center justify-between px-6 bg-white z-50">
+        <Button
+          variant="ghost"
+          className={`
+            h-auto py-2 px-4 hover:bg-transparent relative
+            after:content-[''] after:absolute after:bottom-0 after:left-0 
+            after:w-full after:h-[1px] after:bg-neutral-900
+            after:scale-x-0 after:origin-left after:transition-transform
+            ${isTTSEnabled ? 'after:scale-x-100' : 'after:scale-x-0'}
+          `}
+          onClick={() => setIsTTSEnabled(!isTTSEnabled)}
+        >
+          <div className="text-[10px] tracking-[0.25em] uppercase text-neutral-900 font-light">
+            {isTTSEnabled ? "Voice" : "Muted"}
+          </div>
+        </Button>
+        <VoiceSettings
+          currentSettings={voiceSettings}
+          onSettingsChange={handleVoiceSettingsChange}
+        />
+      </div>
+      <div className="w-full max-w-md space-y-8 mt-8">
         {isInitialSetup ? (
-          // Language Selection Phase
           <LanguageSelector
             isRecording={isRecording}
             isListening={isListening}
@@ -243,15 +288,20 @@ export default function Home() {
             onListeningStop={stopListening}
             transcribedText={transcribedText}
             showWelcomeMessage={true}
+            currentMode={currentMode}
+            isTTSEnabled={isTTSEnabled}
           />
         ) : (
-          // Translation Interface
           <>
             <div className="flex justify-center mb-16">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1">
-                <span className="text-xs font-medium text-gray-600">{supportedLanguages[0].name}</span>
-                <span className="text-gray-300 text-[10px] leading-none translate-y-px pb-1">⟷</span>
-                <span className="text-xs font-medium text-gray-600">{supportedLanguages[1].name}</span>
+              <div className="inline-flex items-center gap-4 py-1">
+                <span className="text-[10px] tracking-[0.25em] uppercase text-neutral-900 font-light">
+                  {supportedLanguages[0].name}
+                </span>
+                <span className="text-[8px] tracking-[0.2em] text-neutral-400 font-light">⟷</span>
+                <span className="text-[10px] tracking-[0.25em] uppercase text-neutral-900 font-light">
+                  {supportedLanguages[1].name}
+                </span>
               </div>
             </div>
             
@@ -265,6 +315,8 @@ export default function Home() {
               onListeningStop={stopListening}
               transcribedText={transcribedText}
               translatedText={translatedText}
+              currentMode={currentMode}
+              isTTSEnabled={isTTSEnabled}
             />
 
             <MessageDisplay 

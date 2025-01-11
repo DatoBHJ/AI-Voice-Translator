@@ -325,14 +325,14 @@ export function LanguageSelector({
       )}
 
       {(previousTranscribedTextRef.current || transcribedText) && (
-        <div className="text-center mt-10 space-y-4">
+        <div className="text-center mt-10 px-10 space-y-4">
           <p className="text-sm text-gray-500">
             "{previousTranscribedTextRef.current || transcribedText}"
           </p>
           {(translatedText) && (
             <div className="flex flex-col items-center">
               <div className="space-y-2">
-                <p className="text-xl font-medium text-gray-900">
+                <p className="text-xl tracking-[0.1em] text-neutral-900 font-light">
                   {translatedText}
                 </p>
                 {isTTSEnabled && (
@@ -342,14 +342,14 @@ export function LanguageSelector({
                     className={`
                       w-10 h-10 rounded-full mx-auto
                       flex items-center justify-center
-                      transition-all duration-200 bg-gray-50
+                      transition-all duration-200 
                       ${(isPlaying || isLoadingAudio || isRecording || isProcessing) 
                         ? 'opacity-50 cursor-not-allowed' 
-                        : 'hover:bg-gray-100 cursor-pointer'}
+                        : ' cursor-pointer'}
                     `}
                     aria-label="Play translation"
                   >
-                    <Volume2 className="w-5 h-5 text-gray-600" />
+                    <Volume2 className="w-5 h-5 text-gray-500" />
                   </button>
                 )}
               </div>
@@ -385,7 +385,7 @@ export function LanguageSelector({
         </Button>
 
         <div className="flex flex-col items-center mt-6">
-          <div className="text-[10px] tracking-[0.25em] uppercase text-neutral-400 font-light">
+          <div className="text-[15px] tracking-[0.25em] uppercase text-neutral-900 font-light">
             {isProcessing 
               ? "Processing"
               : isRecording 

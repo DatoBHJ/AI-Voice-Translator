@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     const qualityChecks = {
       noSpeechProb: segment.no_speech_prob > 0.5,
       lowConfidence: segment.avg_logprob < -1,  
-      unusualCompression: segment.compression_ratio < 0.3 || segment.compression_ratio > 5.2  
+      unusualCompression: segment.compression_ratio < 0 || segment.compression_ratio > 10 
     };
 
     if (qualityChecks.noSpeechProb || qualityChecks.lowConfidence || qualityChecks.unusualCompression) {

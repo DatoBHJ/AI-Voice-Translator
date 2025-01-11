@@ -181,16 +181,6 @@ export function LanguageSelector({
     setIsLoadingAudio(false);
   };
 
-  const handleRecordingStart = () => {
-    // If there's any audio playing, stop it immediately
-    if (isPlaying || isLoadingAudio) {
-      cleanupAudio();
-    }
-    
-    // Start recording immediately
-    onRecordingStart();
-  };
-
   const playTranslatedText = async () => {
     if (!translatedText || isPlaying || isLoadingAudio) return;
     

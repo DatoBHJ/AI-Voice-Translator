@@ -24,6 +24,8 @@ export function useAudioRecorder({
   const audioContextRef = useRef<AudioContext | null>(null);
   const recordingStartRef = useRef<(() => Promise<void>) | null>(null);
   const recordingStopRef = useRef<(() => void) | null>(null);
+  const preBufferRef = useRef<Blob[]>([]);
+  const isPreBufferingRef = useRef(false);
 
   const cleanup = useCallback((fullCleanup: boolean = false) => {
     if (silenceTimeoutRef.current) {
@@ -80,119 +82,28 @@ export function useAudioRecorder({
     throw new Error('No supported audio MIME type found');
   };
 
-  const startRecording = useCallback(async () => {
-    if (isProcessingRef.current || isRecording) {
-      console.log('Recording already in progress');
-      return;
-    }
-
-    try {
-      isProcessingRef.current = true;
-
-      // Ensure we have a stream
-      if (!streamRef.current || !audioContextRef.current || !analyserRef.current) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          }
-        });
-        streamRef.current = stream;
-
-        // Set up audio context and analyser
-        audioContextRef.current = new AudioContext();
-        const source = audioContextRef.current.createMediaStreamSource(stream);
-        analyserRef.current = audioContextRef.current.createAnalyser();
-        analyserRef.current.fftSize = 1024;
-        analyserRef.current.minDecibels = -65;
-        analyserRef.current.maxDecibels = -10;
-        analyserRef.current.smoothingTimeConstant = smoothingTimeConstant;
-        source.connect(analyserRef.current);
-      }
-      
-      // Get supported MIME type
-      const mimeType = getSupportedMimeType();
-      console.log('Using MIME type:', mimeType);
-
-      // Create new MediaRecorder instance
-      const recorder = new MediaRecorder(streamRef.current, {
-        mimeType,
-        audioBitsPerSecond: 96000
-      });
-      
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          console.log('Received audio chunk:', event.data.size, 'bytes');
-          audioChunksRef.current.push(event.data);
+  const startPreBuffering = useCallback(async () => {
+    if (!streamRef.current || isPreBufferingRef.current) return;
+    
+    isPreBufferingRef.current = true;
+    const mimeType = getSupportedMimeType();
+    const recorder = new MediaRecorder(streamRef.current, {
+      mimeType,
+      audioBitsPerSecond: 96000
+    });
+    
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        preBufferRef.current.push(event.data);
+        // Keep only last 1 second of pre-buffer
+        if (preBufferRef.current.length > 4) { // 250ms * 4 = 1 second
+          preBufferRef.current.shift();
         }
-      };
-
-      recorder.onstop = async () => {
-        console.log('Recording stopped');
-        setIsRecording(false);
-        
-        if (audioChunksRef.current.length > 0) {
-          console.log('Creating audio blob from', audioChunksRef.current.length, 'chunks');
-          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-          console.log('Audio blob created:', audioBlob.size, 'bytes');
-          
-          try {
-            await onRecordingComplete(audioBlob);
-          } catch (error) {
-            console.error('Error processing recording:', error);
-          }
-        } else {
-          console.log('No significant audio detected - ignoring');
-        }
-        
-        audioChunksRef.current = [];
-        // Only do partial cleanup
-        cleanup(false);
-      };
-
-      recorder.onerror = (event) => {
-        console.error('MediaRecorder error:', event);
-        cleanup(true);
-      };
-
-      // Start recording and request data every 250ms
-      recorder.start(250);
-      console.log('Recorder started');
-      setMediaRecorder(recorder);
-      setIsRecording(true);
-      isProcessingRef.current = false;
-
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      cleanup(true);
-      throw error;
-    }
-  }, [onRecordingComplete, cleanup, isRecording]);
-
-  const stopRecording = useCallback(() => {
-    if (isProcessingRef.current) {
-      console.log('Already processing stop request');
-      return;
-    }
-
-    console.log('Stopping recording...');
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      isProcessingRef.current = true;
-      try {
-        mediaRecorder.stop();
-      } catch (error) {
-        console.error('Error stopping recording:', error);
-        cleanup(true);
       }
-    } else {
-      cleanup(false);
-    }
-  }, [mediaRecorder, cleanup]);
-
-  // Store the recording functions in refs to avoid circular dependencies
-  recordingStartRef.current = startRecording;
-  recordingStopRef.current = stopRecording;
+    };
+    
+    recorder.start(250); // Record in 250ms chunks
+  }, []);
 
   const detectSilence = useCallback(() => {
     if (!analyserRef.current || !isListening) return;
@@ -200,8 +111,15 @@ export function useAudioRecorder({
     const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
     analyserRef.current.getByteFrequencyData(dataArray);
 
-    // Calculate average volume
-    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+    // Calculate average volume with more weight on higher frequencies
+    let weightedSum = 0;
+    let weightSum = 0;
+    for (let i = 0; i < dataArray.length; i++) {
+      const weight = Math.pow(i / dataArray.length, 2) + 0.5; // Give more weight to higher frequencies
+      weightedSum += dataArray[i] * weight;
+      weightSum += weight;
+    }
+    const average = weightedSum / weightSum;
     const dB = 20 * Math.log10(average / 255);
 
     // Debug log for volume levels
@@ -231,6 +149,125 @@ export function useAudioRecorder({
       }
     }
   }, [isRecording, isListening, silenceThreshold, silenceTimeout]);
+
+  const startRecording = useCallback(async () => {
+    if (isProcessingRef.current || isRecording) {
+      console.log('Recording already in progress');
+      return;
+    }
+
+    try {
+      isProcessingRef.current = true;
+
+      // Ensure we have a stream
+      if (!streamRef.current || !audioContextRef.current || !analyserRef.current) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          }
+        });
+        streamRef.current = stream;
+
+        // Set up audio context and analyser
+        audioContextRef.current = new AudioContext();
+        const source = audioContextRef.current.createMediaStreamSource(stream);
+        analyserRef.current = audioContextRef.current.createAnalyser();
+        analyserRef.current.fftSize = 2048; // Increased for better frequency resolution
+        analyserRef.current.minDecibels = -70; // Lower to catch quieter sounds
+        analyserRef.current.maxDecibels = -10;
+        analyserRef.current.smoothingTimeConstant = smoothingTimeConstant;
+        source.connect(analyserRef.current);
+
+        // Start pre-buffering
+        await startPreBuffering();
+      }
+      
+      const mimeType = getSupportedMimeType();
+      console.log('Using MIME type:', mimeType);
+
+      const recorder = new MediaRecorder(streamRef.current, {
+        mimeType,
+        audioBitsPerSecond: 96000
+      });
+      
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          console.log('Received audio chunk:', event.data.size, 'bytes');
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        console.log('Recording stopped');
+        setIsRecording(false);
+        
+        if (audioChunksRef.current.length > 0 || preBufferRef.current.length > 0) {
+          console.log('Creating audio blob from', 
+            audioChunksRef.current.length + preBufferRef.current.length, 'chunks');
+          
+          // Combine pre-buffer with recorded chunks
+          const allChunks = [...preBufferRef.current, ...audioChunksRef.current];
+          const audioBlob = new Blob(allChunks, { type: mimeType });
+          console.log('Audio blob created:', audioBlob.size, 'bytes');
+          
+          try {
+            await onRecordingComplete(audioBlob);
+          } catch (error) {
+            console.error('Error processing recording:', error);
+          }
+        } else {
+          console.log('No significant audio detected - ignoring');
+        }
+        
+        audioChunksRef.current = [];
+        preBufferRef.current = [];
+        cleanup(false);
+      };
+
+      recorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+        cleanup(true);
+      };
+
+      // Start recording and request data every 250ms
+      recorder.start(250);
+      console.log('Recorder started');
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      isProcessingRef.current = false;
+
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      cleanup(true);
+      throw error;
+    }
+  }, [onRecordingComplete, cleanup, isRecording, startPreBuffering]);
+
+  const stopRecording = useCallback(() => {
+    if (isProcessingRef.current) {
+      console.log('Already processing stop request');
+      return;
+    }
+
+    console.log('Stopping recording...');
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      isProcessingRef.current = true;
+      try {
+        mediaRecorder.stop();
+      } catch (error) {
+        console.error('Error stopping recording:', error);
+        cleanup(true);
+      }
+    } else {
+      cleanup(false);
+    }
+  }, [mediaRecorder, cleanup]);
+
+  // Store the recording functions in refs to avoid circular dependencies
+  recordingStartRef.current = startRecording;
+  recordingStopRef.current = stopRecording;
 
   // Use useEffect to handle continuous monitoring
   useEffect(() => {

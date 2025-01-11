@@ -26,27 +26,27 @@ export const environmentPresets = {
     name: "Quiet Room",
     description: "For office or home",
     settings: {
-      silenceThreshold: -58,
-      silenceTimeout: 800,
-      smoothingTimeConstant: 0.75,
+      silenceThreshold: -65,
+      silenceTimeout: 600,
+      smoothingTimeConstant: 0.6,
     },
   },
   moderate: {
     name: "Coffee Shop",
     description: "For cafes or restaurants",
     settings: {
-      silenceThreshold: -52,
-      silenceTimeout: 1000,
-      smoothingTimeConstant: 0.8,
+      silenceThreshold: -58,
+      silenceTimeout: 800,
+      smoothingTimeConstant: 0.7,
     },
   },
   noisy: {
     name: "Street",
     description: "For outdoor or noisy places",
     settings: {
-      silenceThreshold: -45,
-      silenceTimeout: 1200,
-      smoothingTimeConstant: 0.85,
+      silenceThreshold: -50,
+      silenceTimeout: 1000,
+      smoothingTimeConstant: 0.8,
     },
   },
 } as const;

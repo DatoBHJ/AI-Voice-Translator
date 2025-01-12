@@ -1,6 +1,7 @@
 import { Button } from './ui/button';
 import { Mic, Loader2, Volume2 } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
+import Link from 'next/link';
 
 interface LanguageSelectorProps {
   onRecordingStart: () => void;
@@ -317,12 +318,12 @@ export function LanguageSelector({
                 "..."
               </p>
             </div>
-            <button 
-              onClick={() => window.open('/guide', '_blank')}
+            <Link 
+              href="/guide"
               className="text-[10px] tracking-[0.2em] text-neutral-400 hover:text-neutral-900 transition-colors duration-200"
             >
               How to use?
-            </button>
+            </Link>
           </div>
         </div>
       )}

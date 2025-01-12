@@ -64,23 +64,26 @@ export function MessageDisplay({ messages, currentLanguage }: MessageDisplayProp
         return (
           <div key={message.id} 
             className={`space-y-2 ${
-              isNextMessageDifferentSender ? 'mb-8' : 'mb-2'
+              isNextMessageDifferentSender ? 'mb-12' : 'mb-4'
             }`}
           >
             {showTimestamp && (
-              <div className="flex justify-center my-4">
-                <span className="text-[11px] text-gray-500">
+              <div className="flex justify-center my-6">
+                <span className="text-[9px] tracking-[0.4em] uppercase text-neutral-400 font-light">
                   {formatMessageDate(message.timestamp)}
                 </span>
               </div>
             )}
             <div className={`flex flex-col ${isSentByUser ? 'items-end' : 'items-start'}`}>
               <div className={`relative max-w-[255px] ${isSentByUser ? 'send-bubble' : 'receive-bubble'}`}>
-                <div className="space-y-0">
-                  <p className="text-[16px] leading-[20px]">{message.originalText}</p>
-                  <p className={`text-[14px] leading-[18px] ${
-                    isSentByUser ? 'text-blue-50/90' : 'text-gray-600/90'
-                  }`}>
+                <div className="space-y-1.5">
+                  <p className="text-[15px] font-medium leading-relaxed">
+                    {message.originalText}
+                  </p>
+                  <p className={`
+                    text-[15px] font-light leading-relaxed
+                    ${isSentByUser ? 'text-blue-50/90' : 'text-gray-600/90'}
+                  `}>
                     {message.translatedText}
                   </p>
                 </div>

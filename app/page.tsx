@@ -255,7 +255,7 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center px-10 pb-20 pt-12">
-      <div className="fixed top-0 left-0 right-0 h-16 flex items-center justify-between px-6 bg-white z-50">
+      <div className="fixed top-0 left-0 right-0 h-16 flex items-center justify-between px-6 bg-white z-[100] shadow-none">
         <Button
           variant="ghost"
           className={`
@@ -276,7 +276,7 @@ export default function Home() {
           onSettingsChange={handleVoiceSettingsChange}
         />
       </div>
-      <div className="w-full max-w-md space-y-8 mt-8">
+      <div className="w-full max-w-md space-y-8 mt-12">
         {isInitialSetup ? (
           <LanguageSelector
             isRecording={isRecording}

@@ -44,7 +44,7 @@ export const environmentPresets = {
     name: "Street",
     description: "For outdoor or noisy places",
     settings: {
-      silenceThreshold: -50,
+      silenceThreshold: -45,
       silenceTimeout: 1000,
       smoothingTimeConstant: 0.8,
     },

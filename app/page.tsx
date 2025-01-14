@@ -282,8 +282,8 @@ export default function Home() {
             isRecording={isRecording}
             isListening={isListening}
             isProcessing={isProcessing}
-            onRecordingStart={startRecording}
-            onRecordingStop={stopRecording}
+            // onRecordingStart={startRecording}
+            // onRecordingStop={stopRecording}
             onListeningStart={startListening}
             onListeningStop={stopListening}
             transcribedText={transcribedText}
@@ -293,7 +293,7 @@ export default function Home() {
           />
         ) : (
           <>
-            <div className="flex justify-center mb-16">
+            <div className="flex justify-center mb-14">
               <div className="inline-flex items-center gap-4 py-1">
                 <span className="text-[10px] tracking-[0.25em] uppercase text-neutral-900 font-light">
                   {supportedLanguages[0].name}
@@ -309,8 +309,8 @@ export default function Home() {
               isRecording={isRecording}
               isListening={isListening}
               isProcessing={isProcessing}
-              onRecordingStart={startRecording}
-              onRecordingStop={stopRecording}
+              // onRecordingStart={startRecording}
+              // onRecordingStop={stopRecording}
               onListeningStart={startListening}
               onListeningStop={stopListening}
               transcribedText={transcribedText}

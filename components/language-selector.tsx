@@ -4,8 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 
 interface LanguageSelectorProps {
-  onRecordingStart: () => void;
-  onRecordingStop: () => void;
+  // onRecordingStart: () => void;
+  // onRecordingStop: () => void;
   onListeningStart: () => void;
   onListeningStop: () => void;
   isRecording: boolean;
@@ -19,8 +19,8 @@ interface LanguageSelectorProps {
 }
 
 export function LanguageSelector({
-  onRecordingStart,
-  onRecordingStop,
+  // onRecordingStart,
+  // onRecordingStop,
   onListeningStart,
   onListeningStop,
   isRecording,
@@ -44,6 +44,7 @@ export function LanguageSelector({
   const ttsEnableTimeRef = useRef<number>(0);
   const lastTranslationTimeRef = useRef<number>(0);
   const silentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [isWelcomeMessageFaded, setIsWelcomeMessageFaded] = useState(false);
 
   // Initialize audio context and silent audio
   useEffect(() => {
@@ -299,20 +300,31 @@ export function LanguageSelector({
     }
   };
 
+  useEffect(() => {
+    if (isListening) {
+      setIsWelcomeMessageFaded(true);
+    } else {
+      setIsWelcomeMessageFaded(false);
+    }
+  }, [isListening]);
+
   return (
     <div className="relative min-h-[60vh] bg-white">
       {showWelcomeMessage && (
-        <div className="text-center space-y-8 pt-24">
+        <div className={`text-center space-y-8 pt-24 transition-opacity duration-200 ${isWelcomeMessageFaded ? 'opacity-30' : 'opacity-100'}`}>
           <div className="space-y-6">
             <div className="space-y-4">
               <p className="text-[11px] tracking-[0.4em] uppercase text-neutral-900 font-light">
-                "English 中文"
+                "English Chinese"
               </p>
               <p className="text-[11px] tracking-[0.4em] uppercase text-neutral-900 font-light">
-                "Español Français"
+                "한국어 일본어"
               </p>
               <p className="text-[11px] tracking-[0.4em] uppercase text-neutral-900 font-light">
-                "Deutsch 日本語"
+                "العربية الفارسية"
+              </p>
+              <p className="text-[11px] tracking-[0.4em] uppercase text-neutral-900 font-light">
+                "Русский Хинди"
               </p>
               <p className="text-[11px] tracking-[0.4em] uppercase text-neutral-900 font-light opacity-50">
                 "..."
@@ -367,7 +379,7 @@ export function LanguageSelector({
       )}
 
       <div className={`
-        fixed bottom-28 left-0 right-0 h-36
+        fixed bottom-24 left-0 right-0 h-36
         flex flex-col items-center justify-center
         transition-all duration-400 ease-out
         ${isScrolled 
@@ -399,13 +411,15 @@ export function LanguageSelector({
         </Button>
 
         <div className="mt-6">
-          <div className="text-[9px] tracking-[0.5em] uppercase text-neutral-400 font-light">
+          <div className={`text-[12px] tracking-[0.5em] uppercase font-light ${
+            isProcessing || isRecording || isListening ? 'text-black' : 'text-neutral-400'
+          }`}>
             {isProcessing 
               ? "Processing"
               : isRecording 
                 ? "Recording"
                 : isListening && showWelcomeMessage
-                  ? "Speak Two"
+                  ? "Name Two Languages"
                   : isListening
                     ? "Speaking"
                     : "Tap"}

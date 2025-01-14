@@ -63,30 +63,26 @@ export function MessageDisplay({ messages, currentLanguage }: MessageDisplayProp
 
         return (
           <div key={message.id} 
-            className={`space-y-2 ${
-              isNextMessageDifferentSender ? 'mb-12' : 'mb-4'
-            }`}
+            className={`${isNextMessageDifferentSender ? 'mb-6' : 'mb-2'}`}
           >
             {showTimestamp && (
-              <div className="flex justify-center my-6">
-                <span className="text-[9px] tracking-[0.4em] uppercase text-neutral-400 font-light">
+              <div className="flex justify-center my-4">
+                <span className="text-[9px] tracking-[0.1em] uppercase text-neutral-400 font-light">
                   {formatMessageDate(message.timestamp)}
                 </span>
               </div>
             )}
-            <div className={`flex flex-col ${isSentByUser ? 'items-end' : 'items-start'}`}>
+            <div className={`flex ${isSentByUser ? 'justify-end' : 'justify-start'}`}>
               <div className={`relative max-w-[255px] ${isSentByUser ? 'send-bubble' : 'receive-bubble'}`}>
-                <div className="space-y-1.5">
-                  <p className="text-[15px] font-medium leading-relaxed">
-                    {message.originalText}
-                  </p>
-                  <p className={`
-                    text-[15px] font-light leading-relaxed
-                    ${isSentByUser ? 'text-blue-50/90' : 'text-gray-600/90'}
-                  `}>
-                    {message.translatedText}
-                  </p>
-                </div>
+                <p className="text-[15px] font-medium leading-[1.3]">
+                  {message.originalText}
+                </p>
+                <p className={`
+                  text-[15px] font-light leading-[1.3] mt-2
+                  ${isSentByUser ? 'text-blue-50/90' : 'text-gray-600/90'}
+                `}>
+                  {message.translatedText}
+                </p>
               </div>
             </div>
           </div>

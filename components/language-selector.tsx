@@ -311,9 +311,9 @@ export function LanguageSelector({
   return (
     <div className="relative min-h-[60vh] bg-white">
       {showWelcomeMessage && (
-        <div className={`text-center space-y-8 pt-24 transition-opacity duration-200 ${isWelcomeMessageFaded ? 'opacity-30' : 'opacity-100'}`}>
+        <div className={`text-center space-y-8 pt-32 transition-opacity duration-200 ${isWelcomeMessageFaded ? 'opacity-30' : 'opacity-100'}`}>
           <div className="space-y-6">
-            <div className="space-y-4">
+            {/* <div className="space-y-4">
               <p className="text-[11px] tracking-[0.4em] uppercase text-neutral-900 font-light">
                 "English Chinese"
               </p>
@@ -329,12 +329,12 @@ export function LanguageSelector({
               <p className="text-[11px] tracking-[0.4em] uppercase text-neutral-900 font-light opacity-50">
                 "..."
               </p>
-            </div>
+            </div> */}
             <Link 
               href="/guide"
-              className="text-[10px] tracking-[0.2em] text-neutral-400 hover:text-neutral-900 transition-colors duration-200"
+              className="text-[20px] tracking-[0.2em] text-black transition-colors duration-200 font-light"
             >
-              How to use?
+              ¿
             </Link>
           </div>
         </div>
@@ -422,7 +422,7 @@ export function LanguageSelector({
                   ? "Name Two Languages"
                   : isListening
                     ? "Speaking"
-                    : "Tap"}
+                    : ""}
           </div>
         </div>
       </div>

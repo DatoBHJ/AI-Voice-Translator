@@ -13,6 +13,7 @@ import {
 interface VoiceSettingsProps {
   onSettingsChange: (settings: VoiceSettings) => void;
   currentSettings: VoiceSettings;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export interface VoiceSettings {
@@ -23,8 +24,8 @@ export interface VoiceSettings {
 
 export const environmentPresets = {
   quiet: {
-    name: "Quiet Room",
-    description: "For office or home",
+    name: "Hotel Mode",
+    description: "For quiet indoor spaces like hotels and museums",
     settings: {
       silenceThreshold: -65,
       silenceTimeout: 600,
@@ -32,8 +33,8 @@ export const environmentPresets = {
     },
   },
   moderate: {
-    name: "Coffee Shop",
-    description: "For cafes or restaurants",
+    name: "Cafe Mode",
+    description: "For moderately noisy places like cafes and restaurants",
     settings: {
       silenceThreshold: -58,
       silenceTimeout: 800,
@@ -41,11 +42,11 @@ export const environmentPresets = {
     },
   },
   noisy: {
-    name: "Street",
-    description: "For outdoor or noisy places",
+    name: "Crowd Mode",
+    description: "For high noise areas with loud conversations and ambient sounds",
     settings: {
-      silenceThreshold: -45,
-      silenceTimeout: 1000,
+      silenceThreshold: -50,
+      silenceTimeout: 800,
       smoothingTimeConstant: 0.8,
     },
   },
@@ -53,7 +54,7 @@ export const environmentPresets = {
 
 export const defaultVoiceSettings = environmentPresets.quiet.settings;
 
-export function VoiceSettings({ onSettingsChange, currentSettings }: VoiceSettingsProps) {
+export function VoiceSettings({ onSettingsChange, currentSettings, onOpenChange }: VoiceSettingsProps) {
   const [currentMode, setCurrentMode] = React.useState(() => {
     const mode = Object.entries(environmentPresets).find(
       ([_, preset]) => 
@@ -70,20 +71,20 @@ export function VoiceSettings({ onSettingsChange, currentSettings }: VoiceSettin
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="fixed top-6 right-6 h-auto p-0 "
+          className="h-auto p-0"
         >
-          <div className="text-[9px] font-medium tracking-[0.2em] uppercase text-neutral-400">
+          <div className="text-[10px] tracking-[0.25em] uppercase text-neutral-900 font-light">
             {currentMode}
           </div>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent 
-        align="end" 
-        className="w-[250px] bg-white backdrop-blur-sm border-none shadow-none rounded-xl"
+        align="start" 
+        className="w-[280px] border-none pl-0 rounded-xl"
       >
         {Object.entries(environmentPresets).map(([key, preset]) => (
           <DropdownMenuItem

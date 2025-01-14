@@ -29,6 +29,7 @@ export default function Home() {
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettingsType>(defaultVoiceSettings);
   const [currentMode, setCurrentMode] = useState("Quiet Room");
   const [isTTSEnabled, setIsTTSEnabled] = useState(true);
+  const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
 
   const translateText = useCallback(async (text: string, languages: Language[]) => {
     try {
@@ -256,25 +257,29 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center px-10 pb-20 pt-12">
       <div className="fixed top-0 left-0 right-0 h-16 flex items-center justify-between px-6 bg-white z-[100] shadow-none">
-        <Button
-          variant="ghost"
-          className={`
-            h-auto py-2 px-4 hover:bg-transparent relative
-            after:content-[''] after:absolute after:bottom-0 after:left-0 
-            after:w-full after:h-[1px] after:bg-neutral-900
-            after:scale-x-0 after:origin-left after:transition-transform
-            ${isTTSEnabled ? 'after:scale-x-100' : 'after:scale-x-0'}
-          `}
-          onClick={() => setIsTTSEnabled(!isTTSEnabled)}
-        >
-          <div className="text-[10px] tracking-[0.25em] uppercase text-neutral-900 font-light">
-            {isTTSEnabled ? "Voice" : "Muted"}
-          </div>
-        </Button>
         <VoiceSettings
           currentSettings={voiceSettings}
           onSettingsChange={handleVoiceSettingsChange}
+          onOpenChange={setIsModeMenuOpen}
         />
+        {!isModeMenuOpen && (
+      <Button
+          variant="ghost"
+          className={`
+            h-auto py-2 px-4 hover:bg-transparent relative
+            after:content-[''] after:absolute after:top-1/2 after:left-1/2
+            after:bg-neutral-900 after:transition-all after:-translate-y-1/2
+            ${isTTSEnabled 
+              ? 'after:w-full after:h-[1px] after:left-0 after:scale-x-100' 
+              : 'after:w-[3px] after:h-[3px] after:-translate-x-1/2 after:rounded-full'
+            }
+          `}
+          onClick={() => setIsTTSEnabled(!isTTSEnabled)}
+          title={isTTSEnabled ? "Voice enabled" : "Voice muted"}
+        >
+          <span className="sr-only">{isTTSEnabled ? "Voice enabled" : "Voice muted"}</span>
+        </Button>
+        )}
       </div>
       <div className="w-full max-w-md space-y-8 mt-12">
         {isInitialSetup ? (

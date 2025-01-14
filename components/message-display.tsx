@@ -13,6 +13,9 @@ interface MessageDisplayProps {
 }
 
 export function MessageDisplay({ messages, currentLanguage }: MessageDisplayProps) {
+  // Sort messages by timestamp
+  const sortedMessages = [...messages].sort((a, b) => a.timestamp - b.timestamp);
+
   const formatMessageDate = (timestamp: number) => {
     const messageDate = new Date(timestamp);
     const now = new Date();
@@ -52,12 +55,12 @@ export function MessageDisplay({ messages, currentLanguage }: MessageDisplayProp
 
   return (
     <div className="w-full space-y-2 px-2 py-4 bg-white">
-      {messages.map((message, index) => {
+      {sortedMessages.map((message, index) => {
         const isSentByUser = message.sourceLang === currentLanguage;
-        const showTimestamp = index === messages.length - 1 || 
-          new Date(messages[index + 1]?.timestamp).getTime() - new Date(message.timestamp).getTime() > 60000;
+        const showTimestamp = index === sortedMessages.length - 1 || 
+          new Date(sortedMessages[index + 1]?.timestamp).getTime() - new Date(message.timestamp).getTime() > 60000;
         
-        const nextMessage = messages[index + 1];
+        const nextMessage = sortedMessages[index + 1];
         const isNextMessageDifferentSender = nextMessage && 
           (nextMessage.sourceLang === currentLanguage) !== isSentByUser;
 

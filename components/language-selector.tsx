@@ -135,25 +135,14 @@ export function LanguageSelector({
   }, [translatedText, isTTSEnabled, audioContext]);
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
     const handleScroll = () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      
-      timeoutId = setTimeout(() => {
-        const scrollPosition = window.scrollY;
-        setIsScrolled(scrollPosition > 100);
-      }, 150);
+      const scrollPosition = window.scrollY;
+      setIsScrolled(scrollPosition > 100);
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
       cleanupAudio();
     };
   }, []);
@@ -351,90 +340,89 @@ export function LanguageSelector({
         </div>
       )}
 
-      <div className="absolute inset-0 flex flex-col">
-        {(previousTranscribedTextRef.current || transcribedText) && (
-          <div className={`
-            flex-1 text-center space-y-4 px-8 pt-8
-            transition-all duration-400 ease-out
-            ${isScrolled 
-              ? 'opacity-0 -translate-y-2 scale-[0.99]' 
-              : 'opacity-100 translate-y-0 scale-100'
-            }
-          `}>
-            <p className="text-[15px] tracking-[0.15em] text-neutral-500 font-light">
-              {previousTranscribedTextRef.current || transcribedText}
-            </p>
-            {(translatedText) && (
-              <div className="flex flex-col items-center space-y-2">
-                <p className="text-[20px] tracking-[0.1em] text-neutral-900 font-light">
-                  {translatedText}
-                </p>
-                {isTTSEnabled && (
-                  <button
-                    onClick={playTranslatedText}
-                    disabled={isPlaying || isLoadingAudio || isRecording || isProcessing}
-                    className={`
-                      w-8 h-8 flex items-center justify-center
-                      transition-all duration-300
-                      ${(isPlaying || isLoadingAudio || isRecording || isProcessing) 
-                        ? 'opacity-30' 
-                        : 'opacity-70 hover:opacity-100'}
-                    `}
-                    aria-label="Play translation"
-                  >
-                    <Volume2 className="w-4 h-4 text-neutral-900" />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
+      {(previousTranscribedTextRef.current || transcribedText) && (
         <div className={`
-          h-36 flex flex-col items-center justify-center
+          text-center space-y-4 px-8
           transition-all duration-400 ease-out
           ${isScrolled 
-            ? 'opacity-0 translate-y-3 scale-[0.98] blur-[1px]' 
-            : 'opacity-100 translate-y-0 scale-100 blur-0'
+            ? 'opacity-0 -translate-y-2 scale-[0.99]' 
+            : 'opacity-100 translate-y-0 scale-100'
           }
         `}>
-          <Button
-            variant="outline"
-            size="lg"
-            className={`
-              w-24 h-24 rounded-full border
-              ${isRecording ? 'border-neutral-900' : isListening ? 'border-neutral-900' : 'border-neutral-200'} 
-              bg-white/80 hover:bg-white
-              transition-all ${isScrolled ? 'duration-200' : 'duration-200'} ease-in-out
-              ${isProcessing ? 'opacity-30' : ''}
-              ${isScrolled ? 'scale-95' : 'scale-100'}
-            `}
-            onClick={handleButtonClick}
-            disabled={isProcessing}
-          >
-            {isProcessing ? (
-              <Loader2 className="w-6 h-6 text-neutral-900 animate-spin" />
-            ) : (
-              <Mic className={`w-6 h-6 ${
-                isRecording || isListening ? 'text-neutral-900' : 'text-neutral-400'
-              }`} />
-            )}
-          </Button>
-
-          <div className="mt-6">
-            <div className={`text-[12px] tracking-[0.5em] uppercase font-light ${
-              isProcessing || isRecording || isListening ? 'text-black' : 'text-neutral-400'
-            }`}>
-              {isProcessing 
-                ? "Processing"
-                : isRecording 
-                  ? "Recording"
-                  : isListening && showWelcomeMessage
-                    ? "Name Two Languages"
-                    : isListening
-                      ? "Speaking"
-                      : "TAP"}
+          <p className="text-[15px] tracking-[0.15em] text-neutral-500 font-light">
+            {previousTranscribedTextRef.current || transcribedText}
+          </p>
+          {(translatedText) && (
+            <div className="flex flex-col items-center space-y-2">
+              <p className="text-[20px] tracking-[0.1em] text-neutral-900 font-light">
+                {translatedText}
+              </p>
+              {isTTSEnabled && (
+                <button
+                  onClick={playTranslatedText}
+                  disabled={isPlaying || isLoadingAudio || isRecording || isProcessing}
+                  className={`
+                    w-8 h-8 flex items-center justify-center
+                    transition-all duration-300
+                    ${(isPlaying || isLoadingAudio || isRecording || isProcessing) 
+                      ? 'opacity-30' 
+                      : 'opacity-70 hover:opacity-100'}
+                  `}
+                  aria-label="Play translation"
+                >
+                  <Volume2 className="w-4 h-4 text-neutral-900" />
+                </button>
+              )}
             </div>
+          )}
+        </div>
+      )}
+
+      <div className={`
+        fixed bottom-24 left-0 right-0 h-36
+        flex flex-col items-center justify-center
+        transition-all duration-400 ease-out
+        ${isScrolled 
+          ? 'opacity-0 translate-y-3 scale-[0.98] blur-[1px]' 
+          : 'opacity-100 translate-y-0 scale-100 blur-0'
+        }
+      `}>
+        <Button
+          variant="outline"
+          size="lg"
+          className={`
+            w-24 h-24 rounded-full border
+            ${isRecording ? 'border-neutral-900' : isListening ? 'border-neutral-900' : 'border-neutral-200'} 
+            bg-white/80 hover:bg-white
+            transition-all ${isScrolled ? 'duration-200' : 'duration-200'} ease-in-out
+            ${isProcessing ? 'opacity-30' : ''}
+            ${isScrolled ? 'scale-95' : 'scale-100'}
+          `}
+          onClick={handleButtonClick}
+          disabled={isProcessing}
+        >
+          {isProcessing ? (
+            <Loader2 className="w-6 h-6 text-neutral-900 animate-spin" />
+          ) : (
+            <Mic className={`w-6 h-6 ${
+              isRecording || isListening ? 'text-neutral-900' : 'text-neutral-400'
+            }`} />
+          )}
+        </Button>
+
+        <div className="mt-6">
+          <div className={`text-[12px] tracking-[0.5em] uppercase font-light ${
+            isProcessing || isRecording || isListening ? 'text-black' : 'text-neutral-400'
+          }`}>
+            {isProcessing 
+              ? "Processing"
+              : isRecording 
+                ? "Recording"
+                : isListening && showWelcomeMessage
+                  ? "Name Two Languages"
+                  : isListening
+                    ? "Speaking"
+                    : "TAP"}
           </div>
         </div>
       </div>

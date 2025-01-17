@@ -309,7 +309,7 @@ export function LanguageSelector({
   }, [isListening]);
 
   return (
-    <div className="relative min-h-[60vh] bg-white">
+    <div className={`relative ${showWelcomeMessage ? 'h-[calc(100vh-64px)]' : 'min-h-[60vh]'} bg-white`}>
       {showWelcomeMessage && (
         <div className={`text-center space-y-8 pt-32 transition-opacity duration-200 ${isWelcomeMessageFaded ? 'opacity-30' : 'opacity-100'}`}>
           <div className="space-y-6">

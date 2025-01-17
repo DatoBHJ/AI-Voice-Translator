@@ -131,7 +131,7 @@ export default function Home() {
       formData.append('audio', audioBlob, 'audio.webm');
 
       if (isInitialSetup) {
-        // Initial language setup phase
+        // Spech-to-text
         const transcriptionResponse = await fetch('/api/speech', {
           method: 'POST',
           body: formData,
@@ -152,6 +152,7 @@ export default function Home() {
 
         setTranscribedText(transcriptionData.text);
 
+        // detect two languages
         const languageResponse = await fetch('/api/language', {
           method: 'POST',
           headers: {
@@ -165,7 +166,8 @@ export default function Home() {
         if (!languageResponse.ok) {
           throw new Error(languageData.error || 'Failed to detect languages');
         }
-
+        
+        // save two detected languages
         setSupportedLanguages([
           languageData.sourceLanguage,
           languageData.targetLanguage
@@ -281,6 +283,11 @@ export default function Home() {
         </Button>
         )}
       </div>
+      {error && (
+          <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg">
+            {error}
+          </div>
+        )}
       <div className="w-full max-w-md space-y-8 mt-12">
         {isInitialSetup ? (
           <LanguageSelector
@@ -293,7 +300,7 @@ export default function Home() {
             onListeningStop={stopListening}
             transcribedText={transcribedText}
             showWelcomeMessage={true}
-            currentMode={currentMode}
+            // currentMode={currentMode}
             isTTSEnabled={isTTSEnabled}
           />
         ) : (
@@ -320,7 +327,7 @@ export default function Home() {
               onListeningStop={stopListening}
               transcribedText={transcribedText}
               translatedText={translatedText}
-              currentMode={currentMode}
+              // currentMode={currentMode}
               isTTSEnabled={isTTSEnabled}
             />
 
@@ -331,11 +338,11 @@ export default function Home() {
           </>
         )}
 
-        {error && (
+        {/* {error && (
           <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg">
             {error}
           </div>
-        )}
+        )} */}
       </div>
     </main>
   );

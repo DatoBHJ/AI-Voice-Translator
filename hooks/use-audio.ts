@@ -82,10 +82,12 @@ export function useAudioRecorder({
     throw new Error('No supported audio MIME type found');
   };
 
+
   const startPreBuffering = useCallback(async () => {
     if (!streamRef.current || isPreBufferingRef.current) return;
     
     isPreBufferingRef.current = true;
+    console.log('starting prebuffering')
     const mimeType = getSupportedMimeType();
     const recorder = new MediaRecorder(streamRef.current, {
       mimeType,
@@ -123,12 +125,12 @@ export function useAudioRecorder({
     const dB = 20 * Math.log10(average / 255);
 
     // Debug log for volume levels
-    console.log('Current volume (dB):', dB.toFixed(2));
+    // console.log('Current volume (dB):', dB.toFixed(2));
 
     if (dB < silenceThreshold) {
-      console.log('Silence detected');
+      // console.log('Silence detected');
       if (!silenceTimeoutRef.current && isRecording) {
-        console.log('Starting silence timeout');
+        // console.log('Starting silence timeout');
         silenceTimeoutRef.current = setTimeout(() => {
           if (isRecording && recordingStopRef.current) {
             console.log('Stopping recording due to silence');
@@ -137,14 +139,14 @@ export function useAudioRecorder({
         }, silenceTimeout);
       }
     } else {
-      console.log('Voice detected');
+      // console.log('Sound detected');
       if (silenceTimeoutRef.current) {
-        console.log('Clearing silence timeout');
+        // console.log('Clearing silence timeout');
         clearTimeout(silenceTimeoutRef.current);
         silenceTimeoutRef.current = null;
       }
       if (!isRecording && isListening && recordingStartRef.current) {
-        console.log('Starting recording due to voice');
+        console.log('Starting recording due to sound');
         recordingStartRef.current();
       }
     }

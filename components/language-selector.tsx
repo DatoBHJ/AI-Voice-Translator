@@ -421,7 +421,7 @@ export function LanguageSelector({
               : isRecording 
                 ? "Recording"
                 : isListening && showWelcomeMessage
-                  ? "Name Two Languages"
+                  ? "Name 2 Langs"
                   : isListening
                     ? "Speaking"
                     : "TAP"}

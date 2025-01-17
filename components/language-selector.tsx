@@ -381,10 +381,12 @@ export function LanguageSelector({
       <div className={`
         fixed bottom-24 left-0 right-0 h-36
         flex flex-col items-center justify-center
-        transition-all duration-400 ease-out
+        z-50 pointer-events-auto
+        bg-transparent
+        transition-opacity duration-400 ease-out
         ${isScrolled 
-          ? 'opacity-0 translate-y-3 scale-[0.98] blur-[1px]' 
-          : 'opacity-100 translate-y-0 scale-100 blur-0'
+          ? 'opacity-0 blur-[1px]' 
+          : 'opacity-100 blur-0'
         }
       `}>
         <Button

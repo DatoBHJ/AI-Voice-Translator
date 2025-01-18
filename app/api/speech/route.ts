@@ -1,13 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+// Edge Runtime declaration
 export const runtime = 'edge';
 
-// Initialize OpenAI client with Groq configuration
+// Retry configuration
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000;
+
+// Initialize OpenAI client
 const client = new OpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
   apiKey: process.env.GROQ_API_KEY || '',
 });
+
+// Smart retry function
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  retryCount = 0
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error: any) {
+    if (retryCount >= MAX_RETRIES) {
+      throw error;
+    }
+
+    if (
+      error.message?.includes('blocked') ||
+      error.message?.includes('network') ||
+      error.status === 403 ||
+      error.status === 503
+    ) {
+      const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return withRetry(operation, retryCount + 1);
+    }
+
+    throw error;
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,94 +59,127 @@ export async function POST(req: NextRequest) {
     }
 
     if (!audioFile || !(audioFile instanceof Blob)) {
-      console.error('No valid audio file provided');
       return NextResponse.json(
         { error: 'No valid audio file provided' },
         { status: 400 }
       );
     }
 
-    console.log('Audio file received:', {
-      type: audioFile.type,
-      size: audioFile.size,
-    });
-
-    // Convert the audio data to a buffer
     const arrayBuffer = await audioFile.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Create a File object that OpenAI can process
+    // Log file details for debugging
+    console.log('Audio file details:', {
+      size: buffer.length,
+      type: audioFile.type,
+      name: (audioFile as File).name
+    });
+
+    // Ensure correct mime type is passed from the original file
     const file = await OpenAI.toFile(
-      new Blob([buffer], { type: 'audio/webm' }),
+      new Blob([buffer], { type: audioFile.type || 'audio/webm' }),
       'audio.webm'
     );
 
-    console.log('Calling Groq API for transcription...');
-    console.log('Languages:', languages); 
-
-    // Call Groq's Whisper model
-    const transcription = await client.audio.transcriptions.create({
-      file,
-      model: 'whisper-large-v3-turbo',
-      temperature: 0.0,
-      response_format: 'verbose_json',
-      // prompt: languages 
-      // ? `Please transcribe this audio accurately in its original language. The speaker is using either ${languages[0].name} (${languages[0].code}) or ${languages[1].name} (${languages[1].code}).`
-      // : `Please transcribe this audio accurately in its original language.`
+    // Log the created file for debugging
+    console.log('Created file details:', {
+      size: file.size,
+      type: file.type,
+      name: file.name
     });
 
+    // Groq API call with retry logic
+    const transcription = await withRetry(async () => {
+      return await client.audio.transcriptions.create({
+        file,
+        model: 'whisper-large-v3-turbo',
+        temperature: 0.0,
+        response_format: 'verbose_json',
+      });
+    });
 
-    console.log('Full response:', transcription);
-    console.log('Detected language:', transcription.language);
-    
-    // Check if the audio is likely not speech
     if (!transcription.segments || transcription.segments.length === 0) {
-      console.log('No segments found in transcription');
       return NextResponse.json({ 
         error: 'No speech detected',
-      }, { status: 400 });
+      }, { 
+        status: 400,
+        headers: {
+          'Cache-Control': 'no-store',
+        }
+      });
     }
 
     const segment = transcription.segments[0];
     const qualityChecks = {
       noSpeechProb: segment.no_speech_prob > 0.5,
-      lowConfidence: segment.avg_logprob < -1,  
+      lowConfidence: segment.avg_logprob < -1,
       unusualCompression: segment.compression_ratio < 0 || segment.compression_ratio > 10 
     };
 
     if (qualityChecks.noSpeechProb || qualityChecks.lowConfidence || qualityChecks.unusualCompression) {
-      console.log('Speech quality issues detected:', qualityChecks);
       return NextResponse.json({ 
         error: 'Low quality speech detected',
         details: qualityChecks
-      }, { status: 400 });
+      }, { 
+        status: 400,
+        headers: {
+          'Cache-Control': 'no-store',
+        }
+      });
     }
-    
-    // Clean up transcribed text
+
     const cleanText = transcription.text.trim();
     if (cleanText.length < 2) {
       return NextResponse.json({ 
         error: 'Transcription too short',
-      }, { status: 400 });
+      }, { 
+        status: 400,
+        headers: {
+          'Cache-Control': 'no-store',
+        }
+      });
     }
-    
+
     return NextResponse.json({ 
       text: cleanText,
       language: transcription.language,
       quality: {
-        confidence: Math.exp(segment.avg_logprob),  // Convert log probability to probability
+        confidence: Math.exp(segment.avg_logprob),
         speechProb: 1 - segment.no_speech_prob
       }
+    }, {
+      headers: {
+        'Cache-Control': 'no-store',
+      }
     });
+
   } catch (error) {
     console.error('Speech-to-text error:', error);
+    
+    let errorMessage = 'Please check your network connection and try again.';
+    let statusCode = 500;
+
+    if (error instanceof Error) {
+      if (error.message.includes('blocked')) {
+        errorMessage = 'Network connection is unstable. Please wait a moment and try again.';
+        statusCode = 403;
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'Connection failed. Please check your internet connection.';
+        statusCode = 503;
+      }
+    }
+
     return NextResponse.json(
       { 
-        error: 'Failed to process audio', 
+        error: errorMessage,
         details: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
       },
-      { status: 500 }
+      { 
+        status: statusCode,
+        headers: {
+          'Cache-Control': 'no-store',
+        }
+      }
     );
   }
 } 

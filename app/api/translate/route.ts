@@ -3,10 +3,41 @@ import OpenAI from 'openai';
 
 export const runtime = 'edge';
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000;
+
 const client = new OpenAI({
   baseURL: 'https://api.deepseek.com/v1',
   apiKey: process.env.DEEPSEEK_API_KEY || '',
 });
+
+// Smart retry function
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  retryCount = 0
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error: any) {
+    if (retryCount >= MAX_RETRIES) {
+      throw error;
+    }
+
+    if (
+      error.message?.includes('blocked') ||
+      error.message?.includes('network') ||
+      error.status === 403 ||
+      error.status === 503
+    ) {
+      const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return withRetry(operation, retryCount + 1);
+    }
+
+    throw error;
+  }
+}
 
 export async function POST(req: NextRequest) {
   const { text, languages } = await req.json();
@@ -14,7 +45,12 @@ export async function POST(req: NextRequest) {
   if (!text || !languages || languages.length !== 2) {
     return new Response(
       JSON.stringify({ error: 'Missing required fields or invalid languages array' }),
-      { status: 400 }
+      { 
+        status: 400,
+        headers: {
+          'Cache-Control': 'no-store',
+        }
+      }
     );
   }
 
@@ -23,7 +59,12 @@ export async function POST(req: NextRequest) {
   if (cleanText.length < 2 || /^[.,!?]+$/.test(cleanText)) {
     return new Response(
       JSON.stringify({ error: 'Text too short or meaningless' }),
-      { status: 400 }
+      { 
+        status: 400,
+        headers: {
+          'Cache-Control': 'no-store',
+        }
+      }
     );
   }
 
@@ -35,16 +76,19 @@ Respond with only the translation, no explanations.
 Text to translate: ${text}`;
 
   try {
-    const stream = await client.chat.completions.create({
-      model: 'deepseek-chat',
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.3,
-      stream: true,
+    // Use retry logic for the stream creation
+    const stream = await withRetry(async () => {
+      return await client.chat.completions.create({
+        model: 'deepseek-chat',
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.3,
+        stream: true,
+      });
     });
 
     // Create a new ReadableStream that will be our response
@@ -64,7 +108,11 @@ Text to translate: ${text}`;
           controller.enqueue(textEncoder.encode('data: [DONE]\n\n'));
           controller.close();
         } catch (error) {
-          controller.error(error);
+          // Enhanced error handling for stream
+          const errorMessage = error instanceof Error ? error.message : 'Stream error occurred';
+          const errorEvent = `data: ${JSON.stringify({ error: errorMessage })}\n\n`;
+          controller.enqueue(textEncoder.encode(errorEvent));
+          controller.close();
         }
       },
     });
@@ -73,17 +121,35 @@ Text to translate: ${text}`;
     return new Response(readableStream, {
       headers: {
         'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-store, no-cache',
         'Connection': 'keep-alive',
       },
     });
   } catch (error) {
+    let errorMessage = 'Please check your network connection and try again.';
+    let statusCode = 500;
+
+    if (error instanceof Error) {
+      if (error.message.includes('blocked')) {
+        errorMessage = 'Network connection is unstable. Please wait a moment and try again.';
+        statusCode = 403;
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'Connection failed. Please check your internet connection.';
+        statusCode = 503;
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
-        error: 'Failed to translate text',
+        error: errorMessage,
         details: error instanceof Error ? error.message : 'Unknown error'
       }),
-      { status: 500 }
+      { 
+        status: statusCode,
+        headers: {
+          'Cache-Control': 'no-store',
+        }
+      }
     );
   }
 } 

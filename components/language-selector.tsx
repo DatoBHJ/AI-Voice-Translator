@@ -46,6 +46,10 @@ export function LanguageSelector({
   const silentAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isWelcomeMessageFaded, setIsWelcomeMessageFaded] = useState(false);
 
+  const TRANSLATION_WAIT_TIME = 500; // 1000ms -> 500ms
+  const ANIMATION_DURATION = 400; // 400ms -> 200ms
+  const AUDIO_RETRY_BASE_DELAY = 50; // 100ms -> 50ms
+
   // Initialize audio context and silent audio
   useEffect(() => {
     // Create a silent audio element
@@ -128,7 +132,7 @@ export function LanguageSelector({
         ) {
           playTranslatedText();
         }
-      }, 1000);
+      }, TRANSLATION_WAIT_TIME);
 
       return () => clearTimeout(timeoutId);
     }
@@ -262,7 +266,7 @@ export function LanguageSelector({
             break;
           } catch (error) {
             if (i === 2) throw error;
-            await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, i)));
+            await new Promise(resolve => setTimeout(resolve, AUDIO_RETRY_BASE_DELAY * Math.pow(2, i)));
             // Try to resume audio context and play silent audio before retrying
             if (audioContext?.state === 'suspended') {
               await audioContext.resume();
@@ -343,11 +347,8 @@ export function LanguageSelector({
       {(previousTranscribedTextRef.current || transcribedText) && (
         <div className={`
           text-center space-y-4 px-8
-          transition-all duration-400 ease-out
-          ${isScrolled 
-            ? 'opacity-0 -translate-y-2 scale-[0.99]' 
-            : 'opacity-100 translate-y-0 scale-100'
-          }
+          transition-all duration-${ANIMATION_DURATION} ease-out
+          ${isScrolled ? 'opacity-0 -translate-y-2 scale-[0.99]' : 'opacity-100 translate-y-0 scale-100'}
         `}>
           <p className="text-[15px] tracking-[0.15em] text-neutral-500 font-light">
             {previousTranscribedTextRef.current || transcribedText}

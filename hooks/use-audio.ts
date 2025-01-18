@@ -2,16 +2,16 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 
 interface UseAudioRecorderProps {
   onRecordingComplete: (blob: Blob) => Promise<void>;
-  silenceThreshold?: number; // dB threshold for silence detection
-  silenceTimeout?: number; // ms to wait before stopping
-  smoothingTimeConstant?: number; // smoothing time constant for analyser
+  silenceThreshold: number; // dB threshold for silence detection
+  silenceTimeout: number; // ms to wait before stopping
+  smoothingTimeConstant: number; // smoothing time constant for analyser
 }
 
 export function useAudioRecorder({ 
   onRecordingComplete,
-  silenceThreshold = -50,
-  silenceTimeout = 1500,
-  smoothingTimeConstant = 0.85
+  silenceThreshold,
+  silenceTimeout,
+  smoothingTimeConstant
 }: UseAudioRecorderProps) {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -66,20 +66,21 @@ export function useAudioRecorder({
     const types = [
       'audio/webm;codecs=opus',
       'audio/webm',
-      'audio/mp4',
-      'audio/aac',
       'audio/ogg;codecs=opus',
-      'audio/wav'
+      'audio/wav',
+      'audio/mp4',
+      'audio/aac'
     ];
 
     for (const type of types) {
       if (MediaRecorder.isTypeSupported(type)) {
-        console.log('Found supported MIME type:', type);
+        console.log('Using audio format:', type);
         return type;
       }
     }
 
-    throw new Error('No supported audio MIME type found');
+    console.warn('No preferred audio format supported, falling back to default');
+    return 'audio/webm';
   };
 
 

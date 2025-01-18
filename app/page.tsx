@@ -5,8 +5,9 @@ import { LanguageSelector } from '@/components/language-selector';
 import { MessageDisplay } from '@/components/message-display';
 import { useAudioRecorder } from '@/hooks/use-audio';
 import { Language } from '@/lib/types';
-import { VoiceSettings, VoiceSettings as VoiceSettingsType, defaultVoiceSettings } from '@/components/voice-settings';
+import { VoiceSettings, VoiceSettings as VoiceSettingsType, defaultVoiceSettings, environmentPresets } from '@/components/voice-settings';
 import { Button } from '@/components/ui/button';
+import { translateText } from '@/lib/translate';
 
 interface Message {
   id: string;
@@ -31,86 +32,6 @@ export default function Home() {
   const [isTTSEnabled, setIsTTSEnabled] = useState(true);
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
 
-  const translateText = useCallback(async (text: string, languages: Language[]) => {
-    try {
-      const response = await fetch('/api/translate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text,
-          languages,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Translation failed');
-      }
-
-      if (!response.body) {
-        throw new Error('No response body');
-      }
-
-      // Create a new promise that will resolve with the full translation
-      return new Promise<string>((resolve, reject) => {
-        let translation = '';
-        const reader = response.body!.getReader();
-        const decoder = new TextDecoder();
-
-        async function readStream() {
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-
-              // Decode the stream chunk and split into SSE messages
-              const chunk = decoder.decode(value);
-              const lines = chunk.split('\n');
-
-              for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                  const data = line.slice(5).trim();
-                  
-                  // Check for the completion message
-                  if (data === '[DONE]') {
-                    if (translation) {
-                      setTranslatedText(translation);
-                    }
-                    resolve(translation);
-                    return;
-                  }
-
-                  // Only try to parse if it's not the completion message
-                  try {
-                    const parsed = JSON.parse(data);
-                    if (parsed.content) {
-                      translation += parsed.content;
-                      setTranslatedText(translation);
-                    }
-                  } catch (e) {
-                    console.error('Error parsing SSE message:', e);
-                  }
-                }
-              }
-            }
-            if (translation) {
-              setTranslatedText(translation);
-            }
-            resolve(translation);
-          } catch (error) {
-            reject(error);
-          }
-        }
-
-        readStream();
-      });
-    } catch (error) {
-      throw error;
-    }
-  }, [setTranslatedText]);
-
   const processAudio = async (audioBlob: Blob) => {
     if (processingRef.current) {
       return;
@@ -131,7 +52,7 @@ export default function Home() {
       formData.append('audio', audioBlob, 'audio.webm');
 
       if (isInitialSetup) {
-        // Spech-to-text
+        // Initial language detection phase
         const transcriptionResponse = await fetch('/api/speech', {
           method: 'POST',
           body: formData,
@@ -140,14 +61,22 @@ export default function Home() {
         const transcriptionData = await transcriptionResponse.json();
 
         if (!transcriptionResponse.ok) {
-          // Ignore quality check failures silently
           if (transcriptionData.error === 'Low quality speech detected' || 
               transcriptionData.error === 'No speech detected' ||
               transcriptionData.error === 'Transcription too short') {
             console.log('Ignoring low quality audio:', transcriptionData.error);
             return;
           }
-          throw new Error(transcriptionData.details || transcriptionData.error || 'Failed to transcribe audio');
+          
+          // 사용자 친화적인 에러 메시지로 변환
+          let userFriendlyError = "Something went wrong. Please try again.";
+          if (transcriptionData.error?.includes('blocked')) {
+            userFriendlyError = "Network connection is unstable. Please wait a moment and try again.";
+          } else if (transcriptionData.error?.includes('rate limit')) {
+            userFriendlyError = "Too many requests. Please wait a moment before trying again.";
+          }
+          
+          throw new Error(userFriendlyError);
         }
 
         setTranscribedText(transcriptionData.text);
@@ -167,7 +96,6 @@ export default function Home() {
           throw new Error(languageData.error || 'Failed to detect languages');
         }
         
-        // save two detected languages
         setSupportedLanguages([
           languageData.sourceLanguage,
           languageData.targetLanguage
@@ -184,7 +112,6 @@ export default function Home() {
         const transcriptionData = await transcriptionResponse.json();
 
         if (!transcriptionResponse.ok) {
-          // Ignore quality check failures silently
           if (transcriptionData.error === 'Low quality speech detected' || 
               transcriptionData.error === 'No speech detected' ||
               transcriptionData.error === 'Transcription too short') {
@@ -196,7 +123,16 @@ export default function Home() {
 
         setTranscribedText(transcriptionData.text);
 
-        const translation = await translateText(transcriptionData.text, supportedLanguages);
+        // Use streaming translation
+        const translation = await translateText(
+          transcriptionData.text, 
+          supportedLanguages,
+          {
+            onPartial: (partialTranslation) => {
+              setTranslatedText(partialTranslation);
+            }
+          }
+        );
 
         const newMessage: Message = {
           id: Date.now().toString(),
@@ -218,41 +154,23 @@ export default function Home() {
     }
   };
 
-  const { startRecording, stopRecording, isRecording, startListening, stopListening, isListening } = useAudioRecorder({
+  const { isRecording, startListening, stopListening, isListening } = useAudioRecorder({
     onRecordingComplete: processAudio,
     silenceThreshold: voiceSettings.silenceThreshold,
     silenceTimeout: voiceSettings.silenceTimeout,
+    smoothingTimeConstant: voiceSettings.smoothingTimeConstant,
   });
 
   const handleVoiceSettingsChange = (newSettings: VoiceSettingsType) => {
     setVoiceSettings(newSettings);
     
-    // Define preset values
-    const presets = {
-      quiet: {
-        silenceThreshold: -58,
-        silenceTimeout: 800,
-        smoothingTimeConstant: 0.75
-      },
-      moderate: {
-        silenceThreshold: -52,
-        silenceTimeout: 1000,
-        smoothingTimeConstant: 0.8
-      },
-      street: {
-        silenceThreshold: -45,
-        silenceTimeout: 1200,
-        smoothingTimeConstant: 0.85
-      }
-    };
-
-    // Find matching preset
-    if (JSON.stringify(newSettings) === JSON.stringify(presets.quiet)) {
-      setCurrentMode("Quiet Room");
-    } else if (JSON.stringify(newSettings) === JSON.stringify(presets.moderate)) {
-      setCurrentMode("Coffee Shop");
-    } else {
-      setCurrentMode("Street");
+    // Use the same preset values as voice-settings.tsx
+    if (JSON.stringify(newSettings) === JSON.stringify(environmentPresets.quiet.settings)) {
+      setCurrentMode(environmentPresets.quiet.name);
+    } else if (JSON.stringify(newSettings) === JSON.stringify(environmentPresets.moderate.settings)) {
+      setCurrentMode(environmentPresets.moderate.name);
+    } else if (JSON.stringify(newSettings) === JSON.stringify(environmentPresets.noisy.settings)) {
+      setCurrentMode(environmentPresets.noisy.name);
     }
   };
 

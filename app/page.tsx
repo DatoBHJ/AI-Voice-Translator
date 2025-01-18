@@ -201,11 +201,11 @@ export default function Home() {
         </Button>
         )}
       </div>
-      {error && (
+      {/* {error && (
           <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg">
             {error}
           </div>
-        )}
+        )} */}
       <div className="w-full max-w-md space-y-8 mt-12">
         {isInitialSetup ? (
           <LanguageSelector
@@ -256,11 +256,11 @@ export default function Home() {
           </>
         )}
 
-        {/* {error && (
+        {error && (
           <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg">
             {error}
           </div>
-        )} */}
+        )}
       </div>
     </main>
   );

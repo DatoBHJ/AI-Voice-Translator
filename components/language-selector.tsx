@@ -46,13 +46,13 @@ export function LanguageSelector({
   const silentAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isWelcomeMessageFaded, setIsWelcomeMessageFaded] = useState(false);
 
-  const TRANSLATION_WAIT_TIME = 500; // 1000ms -> 500ms
-  const ANIMATION_DURATION = 400; // 400ms -> 200ms
-  const AUDIO_RETRY_BASE_DELAY = 50; // 100ms -> 50ms
+  const TRANSLATION_WAIT_TIME = 200; // 500ms -> 200ms로 감소
+  const ANIMATION_DURATION = 400;
+  const AUDIO_RETRY_BASE_DELAY = 50;
 
   // Initialize audio context and silent audio
   useEffect(() => {
-    // Create a silent audio element
+    // Create a silent audio element with a very short duration
     const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV");
     silentAudio.setAttribute('playsinline', 'true');
     silentAudio.setAttribute('webkit-playsinline', 'true');
@@ -62,25 +62,55 @@ export function LanguageSelector({
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     setAudioContext(ctx);
 
-    // Resume audio context on user interaction
-    const resumeAudioContext = () => {
-      if (ctx.state === 'suspended') {
-        ctx.resume();
+    // Function to initialize audio
+    const initializeAudio = async () => {
+      try {
+        if (ctx.state === 'suspended') {
+          await ctx.resume();
+        }
+        await silentAudio.play();
+        console.log('Audio context initialized successfully');
+      } catch (error) {
+        console.log('Audio initialization attempt failed:', error);
       }
-      silentAudio.play().catch(() => {});
-      document.removeEventListener('touchstart', resumeAudioContext);
-      document.removeEventListener('click', resumeAudioContext);
     };
 
-    document.addEventListener('touchstart', resumeAudioContext);
-    document.addEventListener('click', resumeAudioContext);
+    // Try to initialize immediately and preload
+    initializeAudio();
+    silentAudio.load(); // Preload silent audio
+
+    // Also try on user interaction
+    const handleInteraction = () => {
+      if (ctx.state === 'suspended') {
+        initializeAudio().then(() => {
+          // Remove listeners only after successful initialization
+          if (ctx.state === 'running') {
+            document.removeEventListener('touchstart', handleInteraction, true);
+            document.removeEventListener('touchend', handleInteraction, true);
+            document.removeEventListener('click', handleInteraction, true);
+            document.removeEventListener('keydown', handleInteraction, true);
+          }
+        });
+      }
+    };
+
+    // Add listeners with capture phase to ensure they run first
+    document.addEventListener('touchstart', handleInteraction, true);
+    document.addEventListener('touchend', handleInteraction, true);
+    document.addEventListener('click', handleInteraction, true);
+    document.addEventListener('keydown', handleInteraction, true);
 
     return () => {
-      document.removeEventListener('touchstart', resumeAudioContext);
-      document.removeEventListener('click', resumeAudioContext);
+      document.removeEventListener('touchstart', handleInteraction, true);
+      document.removeEventListener('touchend', handleInteraction, true);
+      document.removeEventListener('click', handleInteraction, true);
+      document.removeEventListener('keydown', handleInteraction, true);
       if (silentAudioRef.current) {
         silentAudioRef.current.pause();
         silentAudioRef.current = null;
+      }
+      if (ctx.state !== 'closed') {
+        ctx.close();
       }
     };
   }, []);
@@ -191,18 +221,49 @@ export function LanguageSelector({
     if (!translatedText || isPlaying || isLoadingAudio) return;
     
     try {
-      // Try to resume audio context and play silent audio first
+      setIsLoadingAudio(true);
+      
+      // Initialize audio context if needed
+      if (!audioContext) {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        setAudioContext(ctx);
+      }
+
+      // Resume audio context if suspended
       if (audioContext?.state === 'suspended') {
         await audioContext.resume();
       }
-      await silentAudioRef.current?.play().catch(() => {});
 
-      cleanupAudio(); // Cleanup any existing audio first
-      setIsLoadingAudio(true);
+      // Create a new Audio element
+      const audio = new Audio();
+      audio.setAttribute('playsinline', 'true');
+      audio.setAttribute('webkit-playsinline', 'true');
       
-      // Create new abort controller for this request
+      // Set up audio event handlers
+      audio.oncanplaythrough = () => {
+        setIsLoadingAudio(false);
+        setIsPlaying(true);
+      };
+      
+      audio.onended = cleanupAudio;
+      
+      audio.onerror = () => {
+        console.error('Audio playback error:', {
+          error: audio.error,
+          networkState: audio.networkState,
+          readyState: audio.readyState,
+          currentSrc: audio.currentSrc,
+        });
+        cleanupAudio();
+      };
+
+      // Store audio reference
+      audioRef.current = audio;
+
+      // Create abort controller for the fetch request
       abortControllerRef.current = new AbortController();
-      
+
+      // Fetch the audio stream
       const response = await fetch('/api/speech/tts', {
         method: 'POST',
         headers: {
@@ -215,78 +276,55 @@ export function LanguageSelector({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate speech');
+        const errorData = await response.json();
+        console.error('TTS API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+        throw new Error(errorData.details || errorData.error || 'Failed to generate speech');
       }
 
       const audioBlob = await response.blob();
       
-      // Verify blob is audio
       if (!audioBlob.type.startsWith('audio/')) {
+        console.error('Invalid audio format:', audioBlob.type);
         throw new Error(`Invalid audio format: ${audioBlob.type}`);
       }
-      
+
       const audioUrl = URL.createObjectURL(audioBlob);
       audioUrlRef.current = audioUrl;
-      
-      const audio = new Audio();
-      audio.setAttribute('playsinline', 'true');
-      audio.setAttribute('webkit-playsinline', 'true');
-      
-      // Set up audio event handlers before setting source
-      audio.oncanplaythrough = () => {
-        setIsLoadingAudio(false);
-        setIsPlaying(true);
-      };
-      
-      audio.onended = () => {
-        cleanupAudio();
-      };
-      
-      audio.onerror = () => {
-        console.error('Audio playback error:', {
-          error: audio.error,
-          networkState: audio.networkState,
-          readyState: audio.readyState,
-          currentSrc: audio.currentSrc,
-        });
-        cleanupAudio();
-      };
-
-      // Only store the audio reference after all event handlers are set
-      audioRef.current = audio;
-      
-      // Set source and load
       audio.src = audioUrl;
-      
-      try {
-        // Try multiple times with increasing delays
-        for (let i = 0; i < 3; i++) {
-          try {
-            await audio.play();
-            break;
-          } catch (error) {
-            if (i === 2) throw error;
-            await new Promise(resolve => setTimeout(resolve, AUDIO_RETRY_BASE_DELAY * Math.pow(2, i)));
-            // Try to resume audio context and play silent audio before retrying
-            if (audioContext?.state === 'suspended') {
-              await audioContext.resume();
-            }
-            await silentAudioRef.current?.play().catch(() => {});
+
+      // Start playing with retry logic
+      let playAttempts = 0;
+      const maxAttempts = 3;
+      const baseDelay = 50;
+
+      while (playAttempts < maxAttempts) {
+        try {
+          await audio.play();
+          console.log('Audio playback started successfully');
+          break;
+        } catch (error) {
+          playAttempts++;
+          console.error(`Play attempt ${playAttempts} failed:`, error);
+          
+          if (playAttempts === maxAttempts) {
+            throw error;
+          }
+
+          // Short delay before retry
+          await new Promise(resolve => setTimeout(resolve, baseDelay));
+          
+          // Try to resume audio context before retry
+          if (audioContext?.state === 'suspended') {
+            await audioContext.resume();
           }
         }
-      } catch (error) {
-        const playError = error as Error & { code?: number };
-        console.error('Audio play failed:', {
-          error: playError,
-          name: playError.name,
-          message: playError.message,
-          code: playError.code,
-          userAgent: navigator.userAgent
-        });
-        cleanupAudio();
-        throw playError;
       }
     } catch (error: unknown) {
+      console.error('Audio playback failed:', error);
       if (error instanceof Error && error.name === 'AbortError') {
         console.log('Audio fetch aborted');
       } else {

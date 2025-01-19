@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     const transcription = await withRetry(async () => {
       return await client.audio.transcriptions.create({
         file,
-        model: 'whisper-large-v3-turbo',
+        model: 'whisper-large-v3',
         temperature: 0.0,
         response_format: 'verbose_json',
       });

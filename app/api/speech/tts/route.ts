@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}/stream?optimize_streaming_latency=3`,
       {
         method: 'POST',
         headers: {
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
           model_id: "eleven_flash_v2_5",
           voice_settings: {
             stability: 0.5,
-            similarity_boost: 0.7,
+            similarity_boost: 0.75,
             style: 0.5,
             use_speaker_boost: true
           }
@@ -47,22 +47,44 @@ export async function POST(req: NextRequest) {
     );
 
     if (!response.ok) {
-      throw new Error('Failed to generate speech');
+      const errorData = await response.json().catch(() => ({}));
+      console.error('ElevenLabs API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData
+      });
+      
+      throw new Error(
+        errorData.detail || 
+        errorData.message || 
+        `API request failed with status ${response.status}`
+      );
+    }
+
+    // Ensure we have a readable stream
+    if (!response.body) {
+      throw new Error('No response body from ElevenLabs API');
     }
 
     // Forward the audio stream from ElevenLabs
     return new Response(response.body, {
       headers: {
-        'Content-Type': 'audio/mpeg',
+        'Content-Type': 'audio/mpeg'
       },
     });
   } catch (error) {
+    console.error('TTS Error:', error);
     return new Response(
       JSON.stringify({ 
         error: 'Failed to generate speech',
         details: error instanceof Error ? error.message : 'Unknown error'
       }),
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     );
   }
 } 

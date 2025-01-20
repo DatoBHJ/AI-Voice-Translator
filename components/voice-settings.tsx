@@ -84,7 +84,8 @@ export function VoiceSettings({ onSettingsChange, currentSettings, onOpenChange 
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align="start" 
-        className="w-[280px] border-none pl-0 rounded-xl"
+        className="w-[280px] border-none pl-0 rounded-xl bg-white/80 backdrop-blur-sm"
+        sideOffset={8}
       >
         {Object.entries(environmentPresets).map(([key, preset]) => (
           <DropdownMenuItem
@@ -92,7 +93,7 @@ export function VoiceSettings({ onSettingsChange, currentSettings, onOpenChange 
             className={cn(
               "flex flex-col items-start py-3 cursor-pointer",
               "transition-colors rounded-lg mx-1",
-              "first:mt-1 last:mb-1"
+              "first:mt-1 last:mb-1 hover:bg-neutral-100"
             )}
             onClick={() => handlePresetClick(preset)}
           >

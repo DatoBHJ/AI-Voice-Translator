@@ -175,50 +175,42 @@ export default function Home() {
   };
 
   return (
-    <main className={`flex min-h-screen flex-col items-center px-10 ${isInitialSetup ? 'py-0' : 'pb-20 pt-12'}`}>
-      <div className="fixed top-0 left-0 right-0 h-16 flex items-center justify-between px-6 bg-white z-[100] shadow-none">
+    <main className={`flex min-h-screen flex-col items-center ${isInitialSetup ? 'py-0' : 'pb-20 pt-12'}`}>
+      <div className="fixed md:absolute top-0 md:top-[35px] left-0 right-0 h-16 flex items-center justify-between px-6 bg-white z-[60] transition-none">
         <VoiceSettings
           currentSettings={voiceSettings}
           onSettingsChange={handleVoiceSettingsChange}
           onOpenChange={setIsModeMenuOpen}
         />
         {!isModeMenuOpen && (
-      <Button
-          variant="ghost"
-          className={`
-            h-auto py-2 px-4 hover:bg-transparent relative
-            after:content-[''] after:absolute after:top-1/2 after:left-1/2
-            after:bg-neutral-900 after:transition-all after:-translate-y-1/2
-            ${isTTSEnabled 
-              ? 'after:w-full after:h-[1px] after:left-0 after:scale-x-100' 
-              : 'after:w-[3px] after:h-[3px] after:-translate-x-1/2 after:rounded-full'
-            }
-          `}
-          onClick={() => setIsTTSEnabled(!isTTSEnabled)}
-          title={isTTSEnabled ? "Voice enabled" : "Voice muted"}
-        >
-          <span className="sr-only">{isTTSEnabled ? "Voice enabled" : "Voice muted"}</span>
-        </Button>
+          <Button
+            variant="ghost"
+            className={`
+              h-auto py-2 px-4 hover:bg-transparent relative
+              after:content-[''] after:absolute after:top-1/2 after:left-1/2
+              after:bg-neutral-900 after:transition-all after:-translate-y-1/2
+              ${isTTSEnabled 
+                ? 'after:w-full after:h-[1px] after:left-0 after:scale-x-100' 
+                : 'after:w-[3px] after:h-[3px] after:-translate-x-1/2 after:rounded-full'
+              }
+            `}
+            onClick={() => setIsTTSEnabled(!isTTSEnabled)}
+            title={isTTSEnabled ? "Voice enabled" : "Voice muted"}
+          >
+            <span className="sr-only">{isTTSEnabled ? "Voice enabled" : "Voice muted"}</span>
+          </Button>
         )}
       </div>
-      {/* {error && (
-          <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg">
-            {error}
-          </div>
-        )} */}
-      <div className="w-full max-w-md space-y-8 mt-12">
+      <div className="w-full md:max-w-none max-w-md space-y-8 mt-12">
         {isInitialSetup ? (
           <LanguageSelector
             isRecording={isRecording}
             isListening={isListening}
             isProcessing={isProcessing}
-            // onRecordingStart={startRecording}
-            // onRecordingStop={stopRecording}
             onListeningStart={startListening}
             onListeningStop={stopListening}
             transcribedText={transcribedText}
             showWelcomeMessage={true}
-            // currentMode={currentMode}
             isTTSEnabled={isTTSEnabled}
           />
         ) : (
@@ -239,13 +231,10 @@ export default function Home() {
               isRecording={isRecording}
               isListening={isListening}
               isProcessing={isProcessing}
-              // onRecordingStart={startRecording}
-              // onRecordingStop={stopRecording}
               onListeningStart={startListening}
               onListeningStop={stopListening}
               transcribedText={transcribedText}
               translatedText={translatedText}
-              // currentMode={currentMode}
               isTTSEnabled={isTTSEnabled}
             />
 

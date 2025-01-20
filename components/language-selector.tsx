@@ -170,13 +170,36 @@ export function LanguageSelector({
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      setIsScrolled(scrollPosition > 100);
+      // Check if we're on desktop
+      const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+      
+      if (isDesktop) {
+        // Find the iPhone frame content container
+        const iPhoneContent = document.querySelector('.overflow-y-auto');
+        if (iPhoneContent) {
+          setIsScrolled(iPhoneContent.scrollTop > 100);
+        }
+      } else {
+        // Mobile behavior remains unchanged
+        setIsScrolled(window.scrollY > 100);
+      }
     };
 
+    // For mobile
     window.addEventListener('scroll', handleScroll);
+    
+    // For desktop iPhone frame
+    const iPhoneContent = document.querySelector('.overflow-y-auto');
+    if (iPhoneContent) {
+      iPhoneContent.addEventListener('scroll', handleScroll);
+    }
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      const iPhoneContent = document.querySelector('.overflow-y-auto');
+      if (iPhoneContent) {
+        iPhoneContent.removeEventListener('scroll', handleScroll);
+      }
       cleanupAudio();
     };
   }, []);
@@ -423,6 +446,7 @@ export function LanguageSelector({
         z-50 pointer-events-auto
         bg-transparent
         transition-opacity duration-400 ease-out
+        md:bottom-48
         ${isScrolled 
           ? 'opacity-0 blur-[1px]' 
           : 'opacity-100 blur-0'

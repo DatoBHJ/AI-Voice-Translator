@@ -54,7 +54,7 @@ export function MessageDisplay({ messages, currentLanguage }: MessageDisplayProp
   };
 
   return (
-    <div className="w-full space-y-2 px-2 py-4 bg-white">
+    <div className="w-full space-y-2 px-4 py-4 bg-white">
       {sortedMessages.map((message, index) => {
         const isSentByUser = message.sourceLang === currentLanguage;
         const showTimestamp = index === sortedMessages.length - 1 || 
@@ -76,7 +76,7 @@ export function MessageDisplay({ messages, currentLanguage }: MessageDisplayProp
               </div>
             )}
             <div className={`flex ${isSentByUser ? 'justify-end' : 'justify-start'}`}>
-              <div className={`relative max-w-[255px] ${isSentByUser ? 'send-bubble' : 'receive-bubble'}`}>
+              <div className={`relative max-w-[240px] ${isSentByUser ? 'send-bubble' : 'receive-bubble'}`}>
                 <p className="text-[15px] font-medium leading-[1.3]">
                   {message.originalText}
                 </p>

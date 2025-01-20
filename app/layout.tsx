@@ -64,10 +64,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {/* Desktop Layout */}
+        <div className="hidden md:flex min-h-screen items-center justify-center bg-neutral-100">
+          <div className="relative w-[360px] h-[700px] bg-black rounded-[55px] shadow-xl border-[10px] border-black">
+            {/* iPhone Frame Inner Border */}
+            <div className="absolute inset-0 rounded-[45px] pointer-events-none border border-neutral-600/20" />
+            {/* iPhone Dynamic Island */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[32px] w-[126px] bg-black rounded-b-[18px] z-[100]" />
+            {/* iPhone Frame Content */}
+            <div className="relative h-full w-full bg-white rounded-[45px] overflow-hidden">
+              <div className="absolute inset-0 overflow-y-auto overflow-x-hidden">
+                {children}
+              </div>
+            </div>
+          </div>
+          <div className="absolute bottom-16 text-center">
+            <p className="text-[11px] tracking-[0.4em] uppercase text-black font-light">
+              APP IS DESIGNED FOR MOBILE
+            </p>
+          </div>
+        </div>
+        {/* Mobile Layout */}
+        <div className="md:hidden bg-white overflow-x-hidden">
+          {children}
+        </div>
       </body>
     </html>
   );

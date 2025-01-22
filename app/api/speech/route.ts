@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
 
     if (!transcription.segments || transcription.segments.length === 0) {
       return NextResponse.json({ 
-        error: 'No speech detected',
+        error: 'No voice detected. Please speak clearly into your microphone.',
       }, { 
         status: 400,
         headers: {
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
 
     if (qualityChecks.noSpeechProb || qualityChecks.lowConfidence || qualityChecks.unusualCompression) {
       return NextResponse.json({ 
-        error: 'Low quality speech detected',
+        error: 'Speech quality is too low. Please speak louder and more clearly.',
         details: qualityChecks
       }, { 
         status: 400,
@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
     const cleanText = transcription.text.trim();
     if (cleanText.length < 2) {
       return NextResponse.json({ 
-        error: 'Transcription too short',
+        error: 'Speech is too short. Please speak a complete sentence.',
       }, { 
         status: 400,
         headers: {
@@ -156,15 +156,15 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Speech-to-text error:', error);
     
-    let errorMessage = 'Please check your network connection and try again.';
+    let errorMessage = 'Network error. Please check your connection and try again.';
     let statusCode = 500;
 
     if (error instanceof Error) {
       if (error.message.includes('blocked')) {
-        errorMessage = 'Network connection is unstable. Please wait a moment and try again.';
+        errorMessage = 'Server is temporarily unavailable. Please wait a moment and try again.';
         statusCode = 403;
       } else if (error.message.includes('Failed to fetch')) {
-        errorMessage = 'Connection failed. Please check your internet connection.';
+        errorMessage = 'Unable to connect to server. Please check your internet connection.';
         statusCode = 503;
       }
     }

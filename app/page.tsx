@@ -204,7 +204,7 @@ export default function Home() {
           </Button>
         )}
       </div>
-      <div className="w-full md:max-w-none max-w-md space-y-8 mt-12">
+      <div className={`w-full md:max-w-none max-w-md space-y-8 ${isInitialSetup ? 'mt-16' : 'mt-12'}`}>
         {isInitialSetup ? (
           <LanguageSelector
             isRecording={isRecording}

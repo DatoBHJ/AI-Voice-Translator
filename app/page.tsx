@@ -44,30 +44,6 @@ export default function Home() {
       return;
     }
 
-    const MAX_RETRIES = 3;
-    const INITIAL_RETRY_DELAY = 1000;
-
-    const fetchWithRetry = async (url: string, options: RequestInit, retryCount = 0): Promise<Response> => {
-      try {
-        const response = await fetch(url, options);
-        if (!response.ok && retryCount < MAX_RETRIES) {
-          const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
-          console.log(`Retrying request (${retryCount + 1}/${MAX_RETRIES}) after ${delay}ms`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return fetchWithRetry(url, options, retryCount + 1);
-        }
-        return response;
-      } catch (error) {
-        if (retryCount < MAX_RETRIES) {
-          const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
-          console.log(`Retrying after network error (${retryCount + 1}/${MAX_RETRIES}) after ${delay}ms`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return fetchWithRetry(url, options, retryCount + 1);
-        }
-        throw error;
-      }
-    };
-
     try {
       processingRef.current = true;
       setIsProcessing(true);
@@ -78,7 +54,7 @@ export default function Home() {
 
       if (isInitialSetup) {
         // Initial language detection phase
-        const transcriptionResponse = await fetchWithRetry('/api/speech', {
+        const transcriptionResponse = await fetch('/api/speech', {
           method: 'POST',
           body: formData,
         });
@@ -93,17 +69,12 @@ export default function Home() {
             return;
           }
           
-          // Enhanced error messages
           let userFriendlyError = transcriptionData.details || transcriptionData.error;
           
           if (transcriptionData.error === 'Mobile data access restricted') {
             userFriendlyError = transcriptionData.details;
           } else if (transcriptionData.error === 'Network connection failed') {
             userFriendlyError = "Network connection is unstable. Please check your mobile data connection and try again.";
-          } else if (transcriptionData.error === 'API access blocked') {
-            userFriendlyError = "Server access is temporarily restricted. Please try again later.";
-          } else if (transcriptionData.error === 'Request timeout') {
-            userFriendlyError = "Network speed is too slow. Please try in a more stable network environment.";
           } else if (transcriptionData.error === 'Invalid audio file') {
             userFriendlyError = "Invalid audio file. Please check microphone permissions and try again.";
           }
@@ -136,7 +107,7 @@ export default function Home() {
       } else {
         // Translation phase
         formData.append('languages', JSON.stringify(supportedLanguages));
-        const transcriptionResponse = await fetchWithRetry('/api/speech', {
+        const transcriptionResponse = await fetch('/api/speech', {
           method: 'POST',
           body: formData,
         });

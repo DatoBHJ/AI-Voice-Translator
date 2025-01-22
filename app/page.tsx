@@ -178,7 +178,7 @@ export default function Home() {
   };
 
   return (
-    <main className={`flex min-h-screen flex-col items-center ${isInitialSetup ? 'py-0' : 'pb-20 pt-12'}`}>
+    <main className={`flex ${isInitialSetup ? 'h-screen overflow-hidden' : 'min-h-screen pb-20 pt-12'} flex-col items-center`}>
       <div className="fixed md:absolute top-0 md:top-[35px] left-0 right-0 h-16 flex items-center justify-between px-6 bg-white z-[60] transition-none">
         <VoiceSettings
           currentSettings={voiceSettings}

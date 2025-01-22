@@ -71,10 +71,10 @@ export default function Home() {
           
           let userFriendlyError = transcriptionData.details || transcriptionData.error;
           
-          if (transcriptionData.error === 'Mobile data access restricted') {
+          if (transcriptionData.error === 'Cellular data access restricted') {
             userFriendlyError = transcriptionData.details;
           } else if (transcriptionData.error === 'Network connection failed') {
-            userFriendlyError = "Network connection is unstable. Please check your mobile data connection and try again.";
+            userFriendlyError = "Network connection is unstable. Please check your connection and try again.";
           } else if (transcriptionData.error === 'Invalid audio file') {
             userFriendlyError = "Invalid audio file. Please check microphone permissions and try again.";
           }

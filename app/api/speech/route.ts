@@ -119,8 +119,8 @@ export async function POST(req: NextRequest) {
 
     if (error instanceof Error) {
       if (error.message.includes('Cloudflare') || error.message.includes('<!DOCTYPE html>')) {
-        errorMessage = 'Mobile data access restricted';
-        errorDetails = 'Service is temporarily restricted on mobile data. Please try using a Wi-Fi connection or use a VPN for mobile data access.';
+        errorMessage = 'Cellular data access restricted';
+        errorDetails = 'Service is temporarily restricted on cellular data. Please try using a Wi-Fi connection or use a VPN.';
         statusCode = 403;
       } else if (error.message.includes('Failed to fetch') || error.message.includes('network')) {
         errorMessage = 'Network connection failed';

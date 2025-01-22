@@ -64,17 +64,22 @@ export default function Home() {
         if (!transcriptionResponse.ok) {
           if (transcriptionData.error === 'Low quality speech detected' || 
               transcriptionData.error === 'No speech detected' ||
-              transcriptionData.error === 'Transcription too short') {
+              transcriptionData.error === 'Speech too short') {
             console.log('Ignoring low quality audio:', transcriptionData.error);
             return;
           }
           
-          // 사용자 친화적인 에러 메시지로 변환
-          let userFriendlyError = "Something went wrong. Please try again.";
-          if (transcriptionData.error?.includes('blocked')) {
-            userFriendlyError = "Network connection is unstable. Please wait a moment and try again.";
-          } else if (transcriptionData.error?.includes('rate limit')) {
-            userFriendlyError = "Too many requests. Please wait a moment before trying again.";
+          // Enhanced error messages
+          let userFriendlyError = transcriptionData.details || transcriptionData.error;
+          
+          if (transcriptionData.error === 'Network connection failed') {
+            userFriendlyError = "네트워크 연결이 불안정합니다. 모바일 데이터 연결을 확인하고 다시 시도해주세요.";
+          } else if (transcriptionData.error === 'API access blocked') {
+            userFriendlyError = "서버 접속이 일시적으로 제한되었습니다. 잠시 후 다시 시도해주세요.";
+          } else if (transcriptionData.error === 'Request timeout') {
+            userFriendlyError = "네트워크 속도가 너무 느립니다. 더 안정적인 네트워크 환경에서 시도해주세요.";
+          } else if (transcriptionData.error === 'Invalid audio file') {
+            userFriendlyError = "오디오 파일이 올바르지 않습니다. 마이크 권한을 확인하고 다시 시도해주세요.";
           }
           
           throw new Error(userFriendlyError);

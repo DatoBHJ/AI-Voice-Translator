@@ -5,16 +5,25 @@ import OpenAI from 'openai';
 export const runtime = 'edge';
 
 // Retry configuration
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 5;
 const INITIAL_RETRY_DELAY = 1000;
+const MAX_RETRY_DELAY = 10000;
 
 // Initialize OpenAI client
 const client = new OpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
   apiKey: process.env.GROQ_API_KEY || '',
+  defaultHeaders: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Accept': 'application/json',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Origin': process.env.NEXT_PUBLIC_APP_URL || 'https://your-domain.com',
+    'Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://your-domain.com'
+  },
+  defaultQuery: { timeout: '30000' },
 });
 
-// Smart retry function
+// Smart retry function with exponential backoff and jitter
 async function withRetry<T>(
   operation: () => Promise<T>,
   retryCount = 0
@@ -26,13 +35,26 @@ async function withRetry<T>(
       throw error;
     }
 
-    if (
+    // Check if error is retryable
+    const isRetryable = 
       error.message?.includes('blocked') ||
       error.message?.includes('network') ||
+      error.message?.includes('timeout') ||
       error.status === 403 ||
-      error.status === 503
-    ) {
-      const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
+      error.status === 429 ||
+      error.status === 503 ||
+      error.status === 504;
+
+    if (isRetryable) {
+      // Calculate delay with exponential backoff and jitter
+      const baseDelay = Math.min(
+        INITIAL_RETRY_DELAY * Math.pow(2, retryCount),
+        MAX_RETRY_DELAY
+      );
+      const jitter = Math.random() * 1000;
+      const delay = baseDelay + jitter;
+
+      console.log(`Retrying request (${retryCount + 1}/${MAX_RETRIES}) after ${delay}ms delay`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return withRetry(operation, retryCount + 1);
     }
@@ -219,17 +241,21 @@ export async function POST(req: NextRequest) {
     let statusCode = 500;
 
     if (error instanceof Error) {
-      if (error.message.includes('blocked') || error.message.includes('403')) {
+      if (error.message.includes('Cloudflare') || error.message.includes('<!DOCTYPE html>')) {
+        errorMessage = 'Mobile data access restricted';
+        errorDetails = 'Service is temporarily restricted on mobile data. Please try using a Wi-Fi connection or use a VPN for mobile data access.';
+        statusCode = 403;
+      } else if (error.message.includes('blocked') || error.message.includes('403')) {
         errorMessage = 'API access blocked';
-        errorDetails = 'The server is temporarily unavailable. This might be due to network restrictions or rate limiting.';
+        errorDetails = 'Server access is temporarily restricted. Please try again later.';
         statusCode = 403;
       } else if (error.message.includes('Failed to fetch') || error.message.includes('network')) {
         errorMessage = 'Network connection failed';
-        errorDetails = 'Unable to reach the server. This might be due to unstable mobile data connection.';
+        errorDetails = 'Network connection is unstable. Please check your internet connection and try again.';
         statusCode = 503;
       } else if (error.message.includes('timeout')) {
         errorMessage = 'Request timeout';
-        errorDetails = 'The server took too long to respond. This might be due to slow network speed.';
+        errorDetails = 'Server response took too long. Please check your network connection and try again.';
         statusCode = 504;
       } else {
         errorMessage = 'Processing error';

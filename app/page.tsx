@@ -44,6 +44,30 @@ export default function Home() {
       return;
     }
 
+    const MAX_RETRIES = 3;
+    const INITIAL_RETRY_DELAY = 1000;
+
+    const fetchWithRetry = async (url: string, options: RequestInit, retryCount = 0): Promise<Response> => {
+      try {
+        const response = await fetch(url, options);
+        if (!response.ok && retryCount < MAX_RETRIES) {
+          const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
+          console.log(`Retrying request (${retryCount + 1}/${MAX_RETRIES}) after ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return fetchWithRetry(url, options, retryCount + 1);
+        }
+        return response;
+      } catch (error) {
+        if (retryCount < MAX_RETRIES) {
+          const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
+          console.log(`Retrying after network error (${retryCount + 1}/${MAX_RETRIES}) after ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return fetchWithRetry(url, options, retryCount + 1);
+        }
+        throw error;
+      }
+    };
+
     try {
       processingRef.current = true;
       setIsProcessing(true);
@@ -54,7 +78,7 @@ export default function Home() {
 
       if (isInitialSetup) {
         // Initial language detection phase
-        const transcriptionResponse = await fetch('/api/speech', {
+        const transcriptionResponse = await fetchWithRetry('/api/speech', {
           method: 'POST',
           body: formData,
         });
@@ -72,14 +96,16 @@ export default function Home() {
           // Enhanced error messages
           let userFriendlyError = transcriptionData.details || transcriptionData.error;
           
-          if (transcriptionData.error === 'Network connection failed') {
-            userFriendlyError = "네트워크 연결이 불안정합니다. 모바일 데이터 연결을 확인하고 다시 시도해주세요.";
+          if (transcriptionData.error === 'Mobile data access restricted') {
+            userFriendlyError = transcriptionData.details;
+          } else if (transcriptionData.error === 'Network connection failed') {
+            userFriendlyError = "Network connection is unstable. Please check your mobile data connection and try again.";
           } else if (transcriptionData.error === 'API access blocked') {
-            userFriendlyError = "서버 접속이 일시적으로 제한되었습니다. 잠시 후 다시 시도해주세요.";
+            userFriendlyError = "Server access is temporarily restricted. Please try again later.";
           } else if (transcriptionData.error === 'Request timeout') {
-            userFriendlyError = "네트워크 속도가 너무 느립니다. 더 안정적인 네트워크 환경에서 시도해주세요.";
+            userFriendlyError = "Network speed is too slow. Please try in a more stable network environment.";
           } else if (transcriptionData.error === 'Invalid audio file') {
-            userFriendlyError = "오디오 파일이 올바르지 않습니다. 마이크 권한을 확인하고 다시 시도해주세요.";
+            userFriendlyError = "Invalid audio file. Please check microphone permissions and try again.";
           }
           
           throw new Error(userFriendlyError);
@@ -110,7 +136,7 @@ export default function Home() {
       } else {
         // Translation phase
         formData.append('languages', JSON.stringify(supportedLanguages));
-        const transcriptionResponse = await fetch('/api/speech', {
+        const transcriptionResponse = await fetchWithRetry('/api/speech', {
           method: 'POST',
           body: formData,
         });

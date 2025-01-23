@@ -17,6 +17,11 @@ interface Message {
   timestamp: number;
   sourceLang: string;
   targetLang: string;
+  metrics?: {
+    sttLatency?: number;
+    translationLatency?: number;
+    totalLatency?: number;
+  };
 }
 
 export default function Home() {
@@ -32,6 +37,11 @@ export default function Home() {
   const [currentMode, setCurrentMode] = useState("Quiet Room");
   const [isTTSEnabled, setIsTTSEnabled] = useState(true);
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
+  const [metrics, setMetrics] = useState<{
+    sttLatency?: number;
+    translationLatency?: number;
+    totalLatency?: number;
+  }>({});
 
   const processAudio = async (audioBlob: Blob) => {
     if (processingRef.current) {
@@ -48,6 +58,7 @@ export default function Home() {
       processingRef.current = true;
       setIsProcessing(true);
       setError(null);
+      const startTime = performance.now();
 
       const formData = new FormData();
       formData.append('audio', audioBlob, 'audio.webm');
@@ -125,6 +136,14 @@ export default function Home() {
         }
 
         setTranscribedText(transcriptionData.text);
+        
+        // Store STT metrics
+        if (transcriptionData.metrics) {
+          setMetrics(prev => ({
+            ...prev,
+            sttLatency: transcriptionData.metrics.sttLatency
+          }));
+        }
 
         // Use streaming translation
         const translation = await translateText(
@@ -133,6 +152,20 @@ export default function Home() {
           {
             onPartial: (partialTranslation) => {
               setTranslatedText(partialTranslation);
+            },
+            onMetrics: (metrics) => {
+              setMetrics(prev => ({
+                ...prev,
+                translationLatency: metrics.totalLatency,
+                totalLatency: performance.now() - startTime
+              }));
+              
+              // Log complete metrics
+              console.log('End-to-end Metrics:', {
+                sttLatency: metrics.sttLatency,
+                translationLatency: metrics.totalLatency,
+                totalLatency: performance.now() - startTime
+              });
             }
           }
         );
@@ -143,7 +176,12 @@ export default function Home() {
           translatedText: translation,
           timestamp: Date.now(),
           sourceLang: transcriptionData.language,
-          targetLang: supportedLanguages[1].code
+          targetLang: supportedLanguages[1].code,
+          metrics: {
+            sttLatency: transcriptionData.metrics?.sttLatency,
+            translationLatency: metrics.translationLatency,
+            totalLatency: metrics.totalLatency
+          }
         };
 
         setMessages(prev => [...prev, newMessage]);

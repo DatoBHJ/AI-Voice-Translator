@@ -41,6 +41,7 @@ async function withRetry<T>(
 
 export async function POST(req: NextRequest) {
   const { text, languages } = await req.json();
+  const startTime = performance.now();
 
   if (!text || !languages || languages.length !== 2) {
     return new Response(
@@ -96,15 +97,36 @@ Text to translate: ${text}`;
     const readableStream = new ReadableStream({
       async start(controller) {
         try {
+          let firstChunkTime: number | null = null;
+          
           for await (const chunk of stream) {
             const content = chunk.choices[0]?.delta?.content;
             if (content) {
+              if (!firstChunkTime) {
+                firstChunkTime = performance.now();
+                const firstTokenLatency = firstChunkTime - startTime;
+                console.log(`First token latency: ${firstTokenLatency}ms`);
+                
+                // Send metrics with the first chunk
+                const metricsMessage = `data: ${JSON.stringify({ 
+                  metrics: { firstTokenLatency } 
+                })}\n\n`;
+                controller.enqueue(textEncoder.encode(metricsMessage));
+              }
+              
               // Send the chunk as a Server-Sent Event
               const message = `data: ${JSON.stringify({ content })}\n\n`;
               controller.enqueue(textEncoder.encode(message));
             }
           }
-          // Send a completion message
+          // Send a completion message with final metrics
+          const endTime = performance.now();
+          const totalLatency = endTime - startTime;
+          console.log(`Total translation latency: ${totalLatency}ms`);
+          
+          controller.enqueue(textEncoder.encode(`data: ${JSON.stringify({ 
+            metrics: { totalLatency } 
+          })}\n\n`));
           controller.enqueue(textEncoder.encode('data: [DONE]\n\n'));
           controller.close();
         } catch (error) {

@@ -13,6 +13,7 @@ const client = new OpenAI({
 export async function POST(req: NextRequest) {
   try {
     console.log('Received speech-to-text request');
+    const startTime = performance.now();
     
     const formData = await req.formData();
     const audioFile = formData.get('audio');
@@ -58,6 +59,10 @@ export async function POST(req: NextRequest) {
       response_format: 'verbose_json',
     });
 
+    const sttEndTime = performance.now();
+    const sttLatency = sttEndTime - startTime;
+    console.log(`STT Latency: ${sttLatency}ms`);
+
     if (!transcription.segments || transcription.segments.length === 0) {
       return NextResponse.json({ 
         error: 'No voice detected',
@@ -102,6 +107,9 @@ export async function POST(req: NextRequest) {
       quality: {
         confidence: Math.exp(segment.avg_logprob),
         speechProb: 1 - segment.no_speech_prob
+      },
+      metrics: {
+        sttLatency
       }
     }, {
       headers: { 'Cache-Control': 'no-store' }

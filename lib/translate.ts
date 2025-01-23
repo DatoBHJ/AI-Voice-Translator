@@ -1,9 +1,21 @@
 import { Language } from './types';
 
+interface TranslationMetrics {
+  firstTokenLatency?: number;
+  totalLatency?: number;
+  sttLatency?: number;
+  translationLatency?: number;
+}
+
+interface TranslationOptions {
+  onPartial?: (text: string) => void;
+  onMetrics?: (metrics: TranslationMetrics) => void;
+}
+
 export async function translateText(
   text: string, 
   languages: Language[], 
-  options?: { onPartial?: (text: string) => void }
+  options?: TranslationOptions
 ): Promise<string> {
   const response = await fetch('/api/translate', {
     method: 'POST',
@@ -47,6 +59,10 @@ export async function translateText(
               fullTranslation += parsed.content;
               // Call the partial translation callback if provided
               options?.onPartial?.(fullTranslation);
+            }
+            // Handle metrics if present
+            if (parsed.metrics) {
+              options?.onMetrics?.(parsed.metrics);
             }
           } catch (e) {
             console.error('Error parsing SSE message:', e);

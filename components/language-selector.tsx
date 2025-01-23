@@ -372,12 +372,6 @@ export function LanguageSelector({
     }
   }, [isListening]);
 
-  // onClick 핸들러와 호환되도록 래핑 함수 생성
-  const handlePlayButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault(); // 기본 동작 방지
-    playTranslatedText().catch(console.error); // 기존 함수 호출
-  };
-
   return (
     <div className={`relative ${showWelcomeMessage ? 'h-[calc(100vh-64px)]' : 'min-h-[60vh]'} bg-white`}>
       {showWelcomeMessage && (
@@ -409,7 +403,7 @@ export function LanguageSelector({
               </p>
               {isTTSEnabled && (
                 <button
-                  onClick={handlePlayButtonClick}
+                  onClick={playTranslatedText}
                   disabled={isPlaying || isLoadingAudio || isRecording || isProcessing}
                   className={`
                     w-8 h-8 flex items-center justify-center

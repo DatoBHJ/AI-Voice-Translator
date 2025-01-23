@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { LanguageSelector } from '@/components/language-selector';
 import { MessageDisplay } from '@/components/message-display';
 import { useAudioRecorder } from '@/hooks/use-audio';
@@ -177,31 +177,6 @@ export default function Home() {
     }
   };
 
-  const handleListeningStart = () => {
-    // 오디오 프라이밍을 위한 더미 이벤트 발송
-    document.dispatchEvent(new Event('user-interaction'));
-    startListening();
-  };
-
-  // TTS 활성화 시 이벤트 리스너 연결
-  useEffect(() => {
-    if (!isTTSEnabled) return;
-
-    const handleFirstPlay = async () => {
-      try {
-        const ctx = new AudioContext();
-        await ctx.resume();
-        const silentAudio = new Audio("data:audio/mp3;base64,...");
-        await silentAudio.play();
-      } catch (error) {
-        console.log('Audio pre-warm failed:', error);
-      }
-    };
-
-    document.addEventListener('user-interaction', handleFirstPlay);
-    return () => document.removeEventListener('user-interaction', handleFirstPlay);
-  }, [isTTSEnabled]);
-
   return (
     <main className={`flex ${isInitialSetup ? 'h-screen overflow-hidden' : 'min-h-screen pb-20 pt-12'} flex-col items-center`}>
       <div className="fixed md:absolute top-0 md:top-[35px] left-0 right-0 h-16 flex items-center justify-between px-6 bg-white z-[60] transition-none">
@@ -235,7 +210,7 @@ export default function Home() {
             isRecording={isRecording}
             isListening={isListening}
             isProcessing={isProcessing}
-            onListeningStart={handleListeningStart}
+            onListeningStart={startListening}
             onListeningStop={stopListening}
             transcribedText={transcribedText}
             showWelcomeMessage={true}
@@ -259,7 +234,7 @@ export default function Home() {
               isRecording={isRecording}
               isListening={isListening}
               isProcessing={isProcessing}
-              onListeningStart={handleListeningStart}
+              onListeningStart={startListening}
               onListeningStop={stopListening}
               transcribedText={transcribedText}
               translatedText={translatedText}

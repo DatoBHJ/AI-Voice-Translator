@@ -239,22 +239,27 @@ export function LanguageSelector({
     setIsLoadingAudio(false);
   };
 
-  const playTranslatedText = async () => {
-    if (!translatedText || isPlaying || isLoadingAudio) return;
-    
-    try {
-      setIsLoadingAudio(true);
-      
-      // Initialize audio context if needed
-      if (!audioContext) {
-        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        setAudioContext(ctx);
-      }
+  const playTranslatedText = async (attempt: number = 0) => {
+    if (attempt > 3) return;
 
-      // Resume audio context if suspended
+    try {
+      // 오디오 컨텍스트 상태 확인
       if (audioContext?.state === 'suspended') {
         await audioContext.resume();
       }
+
+      // iOS 호환성을 위한 추가 재생 시도
+      const playWithRetry = async (audioElement: HTMLAudioElement, retries: number = 3): Promise<void> => {
+        try {
+          await audioElement.play();
+        } catch (error) {
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            return playWithRetry(audioElement, retries - 1);
+          }
+          throw error;
+        }
+      };
 
       // Create a new Audio element
       const audio = new Audio();
@@ -318,41 +323,11 @@ export function LanguageSelector({
       audioUrlRef.current = audioUrl;
       audio.src = audioUrl;
 
-      // Start playing with retry logic
-      let playAttempts = 0;
-      const maxAttempts = 3;
-      const baseDelay = 50;
-
-      while (playAttempts < maxAttempts) {
-        try {
-          await audio.play();
-          console.log('Audio playback started successfully');
-          break;
-        } catch (error) {
-          playAttempts++;
-          console.error(`Play attempt ${playAttempts} failed:`, error);
-          
-          if (playAttempts === maxAttempts) {
-            throw error;
-          }
-
-          // Short delay before retry
-          await new Promise(resolve => setTimeout(resolve, baseDelay));
-          
-          // Try to resume audio context before retry
-          if (audioContext?.state === 'suspended') {
-            await audioContext.resume();
-          }
-        }
-      }
-    } catch (error: unknown) {
-      console.error('Audio playback failed:', error);
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Audio fetch aborted');
-      } else {
-        console.error('Failed to play audio:', error);
-      }
-      cleanupAudio();
+      // 재생 시도
+      await playWithRetry(audio);
+    } catch (error) {
+      console.error(`Playback failed (attempt ${attempt + 1})`, error);
+      setTimeout(() => playTranslatedText(attempt + 1), 500 * (attempt + 1));
     }
   };
 

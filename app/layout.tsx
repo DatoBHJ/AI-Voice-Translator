@@ -66,22 +66,29 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {/* Desktop Layout */}
-        <div className="hidden md:flex min-h-screen items-center justify-center bg-neutral-100">
-          <div className="relative w-[360px] h-[700px] bg-black rounded-[55px] shadow-xl border-[10px] border-black">
+        <div className="hidden md:flex flex-col min-h-screen items-center justify-center bg-neutral-50">
+          <div className="relative w-[380px] h-[780px] bg-black rounded-[50px] shadow-xl border-[8px] border-black overflow-hidden">
             {/* iPhone Frame Inner Border */}
-            <div className="absolute inset-0 rounded-[45px] pointer-events-none border border-neutral-600/20" />
+            <div className="absolute inset-0 rounded-[42px] pointer-events-none border border-neutral-600/10" />
+            
             {/* iPhone Dynamic Island */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[32px] w-[126px] bg-black rounded-b-[18px] z-[100]" />
+            <div className="absolute top-[12px] left-1/2 -translate-x-1/2 h-[32px] w-[120px] bg-black rounded-[20px] z-[100]">
+              {/* Camera Dot */}
+              <div className="absolute right-[28%] top-[8px] w-[9px] h-[9px] rounded-full bg-[#1a1a1a]">
+                <div className="absolute right-[2px] top-[2px] w-[3px] h-[3px] rounded-full bg-[#0f3d85]/40" />
+              </div>
+            </div>
+
             {/* iPhone Frame Content */}
-            <div className="relative h-full w-full bg-white rounded-[45px] overflow-hidden">
+            <div className="relative h-full w-full bg-white rounded-[42px] overflow-hidden">
               <div className="absolute inset-0 overflow-y-auto overflow-x-hidden">
                 {children}
               </div>
             </div>
           </div>
-          <div className="absolute bottom-16 text-center">
-            <p className="text-[11px] tracking-[0.4em] uppercase text-black font-light">
-              APP IS DESIGNED FOR MOBILE
+          <div className="mt-8">
+            <p className="text-[13px] tracking-[0.4em] uppercase text-neutral-600 font-light">
+              N2L IS DESIGNED FOR MOBILE
             </p>
           </div>
         </div>

@@ -20,35 +20,35 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
 };
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nametwolangs.com';
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
-  title: "Real-Time AI Translation Platform",
-  description: "A minimalist real-time AI-powered translation platform for seamless communication across languages. Perfect for travelers to communicate with locals instantly.",
-  keywords: ["translation", "AI", "real-time", "language", "communication", "travel"],
-  authors: [{ name: "Your Name" }],
+  title: "NameTwoLangs - Real-Time AI Translation",
+  description: "Instantly translate between any two languages with AI-powered voice recognition. Perfect for travelers and language learners to communicate naturally.",
+  keywords: ["translation", "AI", "real-time", "language", "communication", "travel", "voice translation", "two-way translation"],
+  authors: [{ name: "DatoBHJ - King BOB" }],
   openGraph: {
-    title: "Real-Time AI Translation Platform",
-    description: "A minimalist real-time AI-powered translation platform for seamless communication across languages. Perfect for travelers to communicate with locals instantly.",
+    title: "NameTwoLangs - Real-Time AI Translation",
+    description: "Instantly translate between any two languages with AI-powered voice recognition. Perfect for travelers and language learners to communicate naturally.",
     type: "website",
-    siteName: "Real-Time AI Translation Platform",
+    siteName: "NameTwoLangs",
     images: [
       {
         url: "/api/og",
         width: 1200,
         height: 630,
-        alt: "Real-Time AI Translation Platform Preview",
+        alt: "NameTwoLangs - Real-Time AI Translation",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Real-Time AI Translation Platform",
-    description: "A minimalist real-time AI-powered translation platform for seamless communication across languages.",
+    title: "NameTwoLangs - Real-Time AI Translation",
+    description: "Instantly translate between any two languages with AI-powered voice recognition.",
     images: {
       url: `${APP_URL}/api/og`,
-      alt: "Real-Time AI Translation Platform Preview",
+      alt: "NameTwoLangs - Real-Time AI Translation",
       width: 1200,
       height: 630,
     },

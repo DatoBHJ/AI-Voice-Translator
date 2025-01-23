@@ -21,42 +21,57 @@ A real-time AI-powered bilateral translation platform designed for travelers to 
 translator-llm/
 .
 ├── README.md
+├── UI
+│   ├── KakaoTalk_Photo_2025-01-08-23-31-57.png
+│   ├── KakaoTalk_Photo_2025-01-08-23-32-00.png
+│   ├── KakaoTalk_Photo_2025-01-08-23-32-04.png
+│   └── home.png
 ├── app
 │   ├── api
 │   │   ├── language
-│   │   ├── og
 │   │   ├── speech
 │   │   └── translate
-│   ├── favicon.ico
 │   ├── globals.css
+│   ├── guide
+│   │   └── page.tsx
 │   ├── layout.tsx
 │   └── page.tsx
 ├── components
 │   ├── language-selector.tsx
 │   ├── message-display.tsx
-│   └── ui
-│       ├── badge.tsx
-│       ├── button.tsx
-│       ├── calendar.tsx
-│       ├── card.tsx
-│       ├── dropdown-menu.tsx
-│       ├── input.tsx
-│       ├── label.tsx
-│       ├── separator.tsx
-│       ├── sheet.tsx
-│       ├── sidebar.tsx
-│       ├── skeleton.tsx
-│       ├── table.tsx
-│       ├── tabs.tsx
-│       └── tooltip.tsx
+│   ├── ui
+│   │   ├── badge.tsx
+│   │   ├── button.tsx
+│   │   ├── calendar.tsx
+│   │   ├── card.tsx
+│   │   ├── dropdown-menu.tsx
+│   │   ├── input.tsx
+│   │   ├── label.tsx
+│   │   ├── separator.tsx
+│   │   ├── sheet.tsx
+│   │   ├── sidebar.tsx
+│   │   ├── skeleton.tsx
+│   │   ├── slider.tsx
+│   │   ├── table.tsx
+│   │   ├── tabs.tsx
+│   │   └── tooltip.tsx
+│   └── voice-settings.tsx
 ├── components.json
+├── docs
+│   ├── groq_elevenlabs.md
+│   ├── groq_inquiries.md
+│   ├── groq_speach_text.md
+│   ├── groq_update_thread.md
+│   └── voice-detection-settings.md
 ├── eslint.config.mjs
 ├── hooks
 │   ├── use-audio.ts
 │   └── use-mobile.tsx
 ├── instructions
-│   └── instruction.md
+│   ├── instruction.md
+│   └── problem.md
 ├── lib
+│   ├── translate.ts
 │   ├── types.ts
 │   └── utils.ts
 ├── next-env.d.ts
@@ -70,8 +85,9 @@ translator-llm/
 │   ├── next.svg
 │   ├── vercel.svg
 │   └── window.svg
+├── styles
+│   └── animations.css
 ├── tailwind.config.ts
-├── tmp
 └── tsconfig.json
 ```
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { LanguageSelector } from '@/components/language-selector';
 import { MessageDisplay } from '@/components/message-display';
 import { useAudioRecorder } from '@/hooks/use-audio';
@@ -176,37 +176,6 @@ export default function Home() {
       setCurrentMode(environmentPresets.noisy.name);
     }
   };
-
-  // 모든 사용자 상호작용 이벤트에 오디오 활성화 바인딩
-  useEffect(() => {
-    const handleInteraction = async () => {
-      try {
-        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        await ctx.resume();
-        const silentAudio = new Audio("data:audio/mp3;base64,...");
-        silentAudio.volume = 0;
-        await silentAudio.play();
-      } catch (error) {
-        console.log('Interaction handling failed:', error);
-      }
-    };
-
-    // 모든 가능한 상호작용 이벤트 리스너 등록
-    const events = ['touchstart', 'click', 'mousedown', 'keydown'];
-    events.forEach(event => {
-      document.addEventListener(event, handleInteraction, { 
-        once: true,
-        capture: true, // 캡처 단계에서 먼저 실행
-        passive: true 
-      });
-    });
-
-    return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, handleInteraction);
-      });
-    };
-  }, []);
 
   return (
     <main className={`flex ${isInitialSetup ? 'h-screen overflow-hidden' : 'min-h-screen pb-20 pt-12'} flex-col items-center`}>

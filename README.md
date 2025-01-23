@@ -16,8 +16,8 @@ A low-latency voice translation solution supporting 50+ languages with environme
   Conversation history with imessage style ui with timestamps
 
 ## 📸 Screenshots
-![Translation Interface](./assets/images/1.png)
-![Voice Settings](./assets/images/2.png)
+![Translation Interface](./assets/images/0.png)
+![Voice Settings](./assets/images/1.png)
 
 ## 🛠 Tech Stack
 **Core Framework**  

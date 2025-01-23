@@ -378,23 +378,6 @@ export function LanguageSelector({
       {showWelcomeMessage && (
         <div className={`text-center space-y-8 pt-32 transition-opacity duration-200 ${isWelcomeMessageFaded ? 'opacity-30' : 'opacity-100'}`}>
           <div className="space-y-6">
-            {/* <div className="space-y-4">
-              <p className="text-[11px] tracking-[0.4em] uppercase text-neutral-900 font-light">
-                "English Chinese"
-              </p>
-              <p className="text-[11px] tracking-[0.4em] uppercase text-neutral-900 font-light">
-                "한국어 일본어"
-              </p>
-              <p className="text-[11px] tracking-[0.4em] uppercase text-neutral-900 font-light">
-                "العربية الفارسية"
-              </p>
-              <p className="text-[11px] tracking-[0.4em] uppercase text-neutral-900 font-light">
-                "Русский Хинди"
-              </p>
-              <p className="text-[11px] tracking-[0.4em] uppercase text-neutral-900 font-light opacity-50">
-                "..."
-              </p>
-            </div> */}
             <Link 
               href="/guide"
               className="text-[20px] tracking-[0.2em] text-black transition-colors duration-200 font-light"

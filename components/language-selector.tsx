@@ -239,27 +239,22 @@ export function LanguageSelector({
     setIsLoadingAudio(false);
   };
 
-  const playTranslatedText = async (attempt: number = 0) => {
-    if (attempt > 3) return;
-
+  const playTranslatedText = async () => {
+    if (!translatedText || isPlaying || isLoadingAudio) return;
+    
     try {
-      // 오디오 컨텍스트 상태 확인
+      setIsLoadingAudio(true);
+      
+      // Initialize audio context if needed
+      if (!audioContext) {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        setAudioContext(ctx);
+      }
+
+      // Resume audio context if suspended
       if (audioContext?.state === 'suspended') {
         await audioContext.resume();
       }
-
-      // iOS 호환성을 위한 추가 재생 시도
-      const playWithRetry = async (audioElement: HTMLAudioElement, retries: number = 3): Promise<void> => {
-        try {
-          await audioElement.play();
-        } catch (error) {
-          if (retries > 0) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            return playWithRetry(audioElement, retries - 1);
-          }
-          throw error;
-        }
-      };
 
       // Create a new Audio element
       const audio = new Audio();
@@ -323,11 +318,41 @@ export function LanguageSelector({
       audioUrlRef.current = audioUrl;
       audio.src = audioUrl;
 
-      // 재생 시도
-      await playWithRetry(audio);
-    } catch (error) {
-      console.error(`Playback failed (attempt ${attempt + 1})`, error);
-      setTimeout(() => playTranslatedText(attempt + 1), 500 * (attempt + 1));
+      // Start playing with retry logic
+      let playAttempts = 0;
+      const maxAttempts = 3;
+      const baseDelay = 50;
+
+      while (playAttempts < maxAttempts) {
+        try {
+          await audio.play();
+          console.log('Audio playback started successfully');
+          break;
+        } catch (error) {
+          playAttempts++;
+          console.error(`Play attempt ${playAttempts} failed:`, error);
+          
+          if (playAttempts === maxAttempts) {
+            throw error;
+          }
+
+          // Short delay before retry
+          await new Promise(resolve => setTimeout(resolve, baseDelay));
+          
+          // Try to resume audio context before retry
+          if (audioContext?.state === 'suspended') {
+            await audioContext.resume();
+          }
+        }
+      }
+    } catch (error: unknown) {
+      console.error('Audio playback failed:', error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Audio fetch aborted');
+      } else {
+        console.error('Failed to play audio:', error);
+      }
+      cleanupAudio();
     }
   };
 
@@ -346,6 +371,12 @@ export function LanguageSelector({
       setIsWelcomeMessageFaded(false);
     }
   }, [isListening]);
+
+  // onClick 핸들러와 호환되도록 래핑 함수 생성
+  const handlePlayButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault(); // 기본 동작 방지
+    playTranslatedText().catch(console.error); // 기존 함수 호출
+  };
 
   return (
     <div className={`relative ${showWelcomeMessage ? 'h-[calc(100vh-64px)]' : 'min-h-[60vh]'} bg-white`}>
@@ -378,7 +409,7 @@ export function LanguageSelector({
               </p>
               {isTTSEnabled && (
                 <button
-                  onClick={playTranslatedText}
+                  onClick={handlePlayButtonClick}
                   disabled={isPlaying || isLoadingAudio || isRecording || isProcessing}
                   className={`
                     w-8 h-8 flex items-center justify-center

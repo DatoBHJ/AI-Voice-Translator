@@ -46,9 +46,8 @@ export function LanguageSelector({
   const silentAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isWelcomeMessageFaded, setIsWelcomeMessageFaded] = useState(false);
 
-  const TRANSLATION_WAIT_TIME = 200; // 500ms -> 200ms로 감소
+  const TRANSLATION_WAIT_TIME = 100; 
   const ANIMATION_DURATION = 400;
-  const AUDIO_RETRY_BASE_DELAY = 50;
 
   // Initialize audio context and silent audio
   useEffect(() => {

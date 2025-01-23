@@ -14,18 +14,12 @@ A real-time AI-powered bilateral translation platform designed for travelers to 
 - shadcn/ui components
 - Tailwind CSS
 - Lucid icons
-- Supabase for data storage
 
 ## Project Structure
 ```
 translator-llm/
 .
 ├── README.md
-├── UI
-│   ├── KakaoTalk_Photo_2025-01-08-23-31-57.png
-│   ├── KakaoTalk_Photo_2025-01-08-23-32-00.png
-│   ├── KakaoTalk_Photo_2025-01-08-23-32-04.png
-│   └── home.png
 ├── app
 │   ├── api
 │   │   ├── language
@@ -40,21 +34,9 @@ translator-llm/
 │   ├── language-selector.tsx
 │   ├── message-display.tsx
 │   ├── ui
-│   │   ├── badge.tsx
 │   │   ├── button.tsx
-│   │   ├── calendar.tsx
-│   │   ├── card.tsx
 │   │   ├── dropdown-menu.tsx
-│   │   ├── input.tsx
-│   │   ├── label.tsx
-│   │   ├── separator.tsx
-│   │   ├── sheet.tsx
-│   │   ├── sidebar.tsx
-│   │   ├── skeleton.tsx
-│   │   ├── slider.tsx
-│   │   ├── table.tsx
-│   │   ├── tabs.tsx
-│   │   └── tooltip.tsx
+│   │   └── sidebar.tsx
 │   └── voice-settings.tsx
 ├── components.json
 ├── docs
@@ -506,128 +488,7 @@ export function updateConversationContext(
 }
 ```
 
-### 4. Conversation History
-
-#### Storage Requirements
-- Supabase Database Schema:
-```sql
--- Conversations table
-create table conversations (
-  id uuid default uuid_generate_v4() primary key,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  first_language_code text not null,
-  second_language_code text not null
-);
-
--- Messages table
-create table messages (
-  id uuid default uuid_generate_v4() primary key,
-  conversation_id uuid references conversations(id) on delete cascade,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  original_text text not null,
-  translated_text text not null,
-  source_language_code text not null,
-  target_language_code text not null
-);
-```
-
-#### UI Requirements
-- Sidebar access to history
-- Chronological message display
-- Original and translated text pairs
-- Mobile-friendly history view
-
-### 5. Error Handling
-
-#### Implementation Example (types/language.ts):
-```typescript
-// Base error class for language-related errors
-export class LanguageDetectionError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'LanguageDetectionError';
-  }
-}
-
-// Specific error types
-export class UnrecognizedLanguageError extends LanguageDetectionError {
-  constructor(message: string = 'Language not recognized') {
-    super(message);
-    this.name = 'UnrecognizedLanguageError';
-  }
-}
-
-export class InvalidInputFormatError extends LanguageDetectionError {
-  constructor(message: string = 'Invalid input format') {
-    super(message);
-    this.name = 'InvalidInputFormatError';
-  }
-}
-
-export class MissingLanguagePairError extends LanguageDetectionError {
-  constructor(message: string = 'Language pair configuration is missing') {
-    super(message);
-    this.name = 'MissingLanguagePairError';
-  }
-}
-```
-
-#### Implementation Example (types/translation.ts):
-```typescript
-export interface Language {
-  code: string;  // ISO 639-1 language code
-  name: string;  // Full language name in English
-}
-
-export interface LanguageConfig {
-  firstLanguage: Language;
-  secondLanguage: Language;
-}
-
-export interface TranslationMessage {
-  text: string;
-  detectedLanguage: Language;
-  translation: string;
-  timestamp: number;
-}
-
-export interface ConversationContext {
-  config: LanguageConfig;
-  messages: TranslationMessage[];
-  lastSpeaker?: 'first' | 'second';
-}
-
-// Error types
-export class TranslationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'TranslationError';
-  }
-}
-
-export class APIError extends TranslationError {
-  constructor(message: string = 'API request failed') {
-    super(message);
-    this.name = 'APIError';
-  }
-}
-
-export class RateLimitError extends TranslationError {
-  constructor(message: string = 'Rate limit exceeded') {
-    super(message);
-    this.name = 'RateLimitError';
-  }
-}
-
-export class EmptyInputError extends TranslationError {
-  constructor(message: string = 'Input text is empty') {
-    super(message);
-    this.name = 'EmptyInputError';
-  }
-}
-```
-
-### 6. Environment Setup
+### 4. Environment Setup
 
 #### Required Environment Variables
 ```env
@@ -640,39 +501,3 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
-
-### 7. Performance Requirements
-
-#### Response Times
-- Speech-to-text: < 2 seconds
-- Language detection: < 1 second
-- Translation: < 2 seconds
-- Total round-trip: < 5 seconds
-
-#### Mobile Optimization
-- Touch-optimized interface
-- Efficient audio handling
-- Minimal network usage
-- Battery-conscious implementation
-
-### 8. Security Considerations
-
-#### API Security
-- Secure API key handling
-- Rate limiting implementation
-- Error message sanitization
-- Input validation
-
-#### Data Privacy
-- Audio data handling
-  - Audio files are processed in memory
-  - No permanent storage of audio data
-  - Immediate cleanup after processing
-- Conversation storage security
-  - Encrypted at rest in Supabase
-  - Row Level Security (RLS) policies
-  - Data retention policies
-- User data protection
-  - No personal information stored
-  - Anonymous session handling
-  - Encrypted transmission

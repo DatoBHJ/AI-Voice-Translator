@@ -9,11 +9,11 @@ A low-latency voice translation solution supporting 50+ languages with environme
 - **Ambient Noise Optimization**  
   Auto-adjusts voice detection for different environments (Quiet/Cafe/Noisy modes)
 - **Bidirectional Streaming**  
-  Groq-powered AI translation with 200ms average response time
+  Groq-powered AI translation with quick response time
 - **Natural Voice Synthesis**  
   ElevenLabs integration for lifelike text-to-speech
 - **Smart Session Management**  
-  Conversation history with message timestamps and language context
+  Conversation history with imessage style ui with timestamps
 
 ## 🛠 Tech Stack
 **Core Framework**  

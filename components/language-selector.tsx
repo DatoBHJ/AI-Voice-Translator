@@ -64,13 +64,39 @@ export function LanguageSelector({
     // Function to initialize audio
     const initializeAudio = async () => {
       try {
+        // iOS에서 필요한 오디오 프라이밍
+        const primeAudio = () => {
+          const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV");
+          silentAudio.volume = 0;
+          silentAudio.play().catch(() => {});
+        };
+
+        // 모바일 환경에서 터치 이벤트 강제 발생
+        const simulateInteraction = () => {
+          document.dispatchEvent(new TouchEvent('touchstart', {
+            bubbles: true,
+            cancelable: true,
+            view: window
+          }));
+        };
+
+        if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+          // iOS에서 필요한 상호작용 시뮬레이션
+          simulateInteraction();
+          primeAudio();
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
         if (ctx.state === 'suspended') {
           await ctx.resume();
         }
+        
+        // 오디오 컨텍스트 활성화 보장
+        await ctx.resume();
         await silentAudio.play();
-        console.log('Audio context initialized successfully');
+
       } catch (error) {
-        console.log('Audio initialization attempt failed:', error);
+        console.log('Audio initialization failed:', error);
       }
     };
 
@@ -245,16 +271,22 @@ export function LanguageSelector({
     try {
       setIsLoadingAudio(true);
       
-      // Initialize audio context if needed
+      // 오디오 컨텍스트 강제 활성화
       if (!audioContext) {
         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
         setAudioContext(ctx);
       }
 
-      // Resume audio context if suspended
+      // iOS에서 필요한 추가 활성화 단계
       if (audioContext?.state === 'suspended') {
         await audioContext.resume();
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
+
+      // 오디오 프라이밍 재시도
+      const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV");
+      silentAudio.volume = 0;
+      await silentAudio.play().catch(() => {});
 
       // Create a new Audio element
       const audio = new Audio();

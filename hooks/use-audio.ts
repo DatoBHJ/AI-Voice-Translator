@@ -320,7 +320,7 @@ export function useAudioRecorder({
         audioContextRef.current = new AudioContext();
         const source = audioContextRef.current.createMediaStreamSource(stream);
         analyserRef.current = audioContextRef.current.createAnalyser();
-        analyserRef.current.fftSize = 2048;
+        analyserRef.current.fftSize = 1024;
         analyserRef.current.minDecibels = -65;
         analyserRef.current.maxDecibels = -10;
         analyserRef.current.smoothingTimeConstant = smoothingTimeConstant;

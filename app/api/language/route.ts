@@ -59,7 +59,8 @@ export async function POST(req: NextRequest) {
     // Use retry logic for the API call
     const completion = await withRetry(async () => {
       return await client.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama3-8b-8192',
+        // model: 'llama-3.3-70b-versatile',
         messages: [
           {
             role: 'system',

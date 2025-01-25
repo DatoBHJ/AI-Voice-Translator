@@ -52,7 +52,7 @@ export const environmentPresets = {
   },
 } as const;
 
-export const defaultVoiceSettings = environmentPresets.quiet.settings;
+export const defaultVoiceSettings = environmentPresets.moderate.settings;
 
 export function VoiceSettings({ onSettingsChange, currentSettings, onOpenChange }: VoiceSettingsProps) {
   const [currentMode, setCurrentMode] = React.useState(() => {

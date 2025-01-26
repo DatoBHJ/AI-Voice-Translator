@@ -36,6 +36,7 @@ export function LanguageSelector({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [isTTSPreloaded, setIsTTSPreloaded] = useState(false);
   const previousTranscribedTextRef = useRef<string | undefined>(transcribedText);
   const previousTranslatedTextRef = useRef<string | undefined>(translatedText);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -239,22 +240,53 @@ export function LanguageSelector({
     setIsLoadingAudio(false);
   };
 
+  // Add TTS preload effect
+  useEffect(() => {
+    const initializeTTSPreload = async () => {
+      if (!isTTSEnabled || isTTSPreloaded) return;
+
+      try {
+        // Warm up with silent audio
+        if (silentAudioRef.current) {
+          await silentAudioRef.current.play();
+          silentAudioRef.current.pause();
+        }
+
+        // Pre-create audio context
+        if (!audioContext) {
+          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          setAudioContext(ctx);
+        }
+
+        setIsTTSPreloaded(true);
+        console.log('TTS preloaded successfully');
+      } catch (error) {
+        console.log('TTS preload failed (non-critical)', error);
+      }
+    };
+
+    initializeTTSPreload();
+  }, [isTTSEnabled]);
+
   const playTranslatedText = async () => {
-    if (!translatedText || isPlaying || isLoadingAudio) return;
+    if (!translatedText || isPlaying || isLoadingAudio || !isTTSPreloaded) return;
     
+    const startTime = performance.now();
+    let fetchStartTime = 0;
+    let fetchEndTime = 0;
+    let blobStartTime = 0;
+    let blobEndTime = 0;
+    let playStartTime = 0;
+
     try {
       setIsLoadingAudio(true);
+      console.log('🎵 Starting TTS process...');
       
-      // Initialize audio context if needed
-      if (!audioContext) {
-        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        setAudioContext(ctx);
-      }
-
-      // Resume audio context if suspended
-      if (audioContext?.state === 'suspended') {
-        await audioContext.resume();
-      }
+      // Use preloaded context
+      const ctx = audioContext || new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Keep context active with silent audio
+      silentAudioRef.current?.play().catch(() => {});
 
       // Create a new Audio element
       const audio = new Audio();
@@ -267,7 +299,11 @@ export function LanguageSelector({
         setIsPlaying(true);
       };
       
-      audio.onended = cleanupAudio;
+      audio.onended = () => {
+        const totalDuration = performance.now() - startTime;
+        console.log(`🎵 Audio playback ended (total duration: ${totalDuration.toFixed(2)}ms)`);
+        cleanupAudio();
+      };
       
       audio.onerror = () => {
         console.error('Audio playback error:', {
@@ -286,6 +322,9 @@ export function LanguageSelector({
       abortControllerRef.current = new AbortController();
 
       // Fetch the audio stream
+      fetchStartTime = performance.now();
+      console.log(`🎵 Starting API request... (${(fetchStartTime - startTime).toFixed(2)}ms since start)`);
+      
       const response = await fetch('/api/speech/tts', {
         method: 'POST',
         headers: {
@@ -297,6 +336,9 @@ export function LanguageSelector({
         signal: abortControllerRef.current.signal,
       });
 
+      fetchEndTime = performance.now();
+      console.log(`🎵 API request completed (took ${(fetchEndTime - fetchStartTime).toFixed(2)}ms)`);
+
       if (!response.ok) {
         const errorData = await response.json();
         console.error('TTS API Error:', {
@@ -307,6 +349,9 @@ export function LanguageSelector({
         throw new Error(errorData.details || errorData.error || 'Failed to generate speech');
       }
 
+      blobStartTime = performance.now();
+      console.log(`🎵 Starting blob processing... (${(blobStartTime - startTime).toFixed(2)}ms since start)`);
+      
       const audioBlob = await response.blob();
       
       if (!audioBlob.type.startsWith('audio/')) {
@@ -318,15 +363,30 @@ export function LanguageSelector({
       audioUrlRef.current = audioUrl;
       audio.src = audioUrl;
 
+      blobEndTime = performance.now();
+      console.log(`🎵 Blob processing completed (took ${(blobEndTime - blobStartTime).toFixed(2)}ms)`);
+
       // Start playing with retry logic
       let playAttempts = 0;
       const maxAttempts = 3;
       const baseDelay = 50;
 
+      playStartTime = performance.now();
+      console.log(`🎵 Starting playback attempt... (${(playStartTime - startTime).toFixed(2)}ms since start)`);
+
       while (playAttempts < maxAttempts) {
         try {
           await audio.play();
-          console.log('Audio playback started successfully');
+          const playSuccessTime = performance.now();
+          console.log(`
+🎵 TTS Latency Breakdown:
+- Initial setup: ${(fetchStartTime - startTime).toFixed(2)}ms
+- API Request: ${(fetchEndTime - fetchStartTime).toFixed(2)}ms
+- Blob Processing: ${(blobEndTime - blobStartTime).toFixed(2)}ms
+- Playback Preparation: ${(playStartTime - blobEndTime).toFixed(2)}ms
+- Play Success: ${(playSuccessTime - playStartTime).toFixed(2)}ms
+- Total Latency: ${(playSuccessTime - startTime).toFixed(2)}ms
+          `);
           break;
         } catch (error) {
           playAttempts++;
@@ -340,19 +400,22 @@ export function LanguageSelector({
           await new Promise(resolve => setTimeout(resolve, baseDelay));
           
           // Try to resume audio context before retry
-          if (audioContext?.state === 'suspended') {
-            await audioContext.resume();
+          if (ctx.state === 'suspended') {
+            await ctx.resume();
           }
         }
       }
     } catch (error: unknown) {
-      console.error('Audio playback failed:', error);
+      const errorTime = performance.now();
+      console.error(`🎵 Audio playback failed at ${(errorTime - startTime).toFixed(2)}ms:`, error);
       if (error instanceof Error && error.name === 'AbortError') {
         console.log('Audio fetch aborted');
       } else {
         console.error('Failed to play audio:', error);
       }
       cleanupAudio();
+    } finally {
+      setIsLoadingAudio(false);
     }
   };
 
@@ -371,6 +434,17 @@ export function LanguageSelector({
       setIsWelcomeMessageFaded(false);
     }
   }, [isListening]);
+
+  useEffect(() => {
+    return () => {
+      if (!isTTSEnabled && audioContext) {
+        audioContext.close();
+        setAudioContext(null);
+        setIsTTSPreloaded(false);
+        console.log('Cleaned up TTS resources');
+      }
+    };
+  }, [isTTSEnabled]);
 
   return (
     <div className={`relative ${showWelcomeMessage ? 'h-[calc(100vh-64px)]' : 'min-h-[60vh]'} bg-white`}>

@@ -1,5 +1,8 @@
 # (kinda) Real-Time AI Voice Translator 
 
+![Translation Interface](./assets/images/0.png)
+![Voice Settings](./assets/images/1.png)
+
 [![Next.js](https://img.shields.io/badge/Next.js-14.2.3-black?style=flat&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 

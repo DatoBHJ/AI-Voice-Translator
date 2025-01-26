@@ -1,12 +1,11 @@
-# Real-Time AI Voice Translator 🌐🎙️
+# (kinda) Real-Time AI Voice Translator 
 
 [![Next.js](https://img.shields.io/badge/Next.js-14.2.3-black?style=flat&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 
-(kinda) Real-time AI voice translation.
 Groq for STT & language detection, ElevenLabs for TTS and DeepSeek for translation.
 
-## 🚀 Quick Start
+## Quick Start
 1. Install dependencies
 ```bash
 npm install

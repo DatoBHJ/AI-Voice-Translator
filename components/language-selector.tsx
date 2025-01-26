@@ -58,43 +58,44 @@ export function LanguageSelector({
     silentAudio.setAttribute('webkit-playsinline', 'true');
     silentAudioRef.current = silentAudio;
 
-    // Create audio context
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    setAudioContext(ctx);
-
     // Function to initialize audio
     const initializeAudio = async () => {
       try {
-        if (ctx.state === 'suspended') {
-          await ctx.resume();
+        // Create audio context only if it doesn't exist
+        if (!audioContext) {
+          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          setAudioContext(ctx);
+          
+          if (ctx.state === 'suspended') {
+            await ctx.resume();
+          }
         }
-        await silentAudio.play();
+        
+        // Try to play silent audio
+        if (silentAudioRef.current) {
+          await silentAudioRef.current.play();
+          silentAudioRef.current.pause();
+        }
+        
         console.log('Audio context initialized successfully');
       } catch (error) {
         console.log('Audio initialization attempt failed:', error);
       }
     };
 
-    // Try to initialize immediately and preload
-    initializeAudio();
-    silentAudio.load(); // Preload silent audio
+    // Try to initialize on mount
+    if (isTTSEnabled) {
+      initializeAudio();
+    }
 
-    // Also try on user interaction
+    // Add interaction listeners
     const handleInteraction = () => {
-      if (ctx.state === 'suspended') {
-        initializeAudio().then(() => {
-          // Remove listeners only after successful initialization
-          if (ctx.state === 'running') {
-            document.removeEventListener('touchstart', handleInteraction, true);
-            document.removeEventListener('touchend', handleInteraction, true);
-            document.removeEventListener('click', handleInteraction, true);
-            document.removeEventListener('keydown', handleInteraction, true);
-          }
-        });
+      if (isTTSEnabled && (!audioContext || audioContext.state === 'suspended')) {
+        initializeAudio();
       }
     };
 
-    // Add listeners with capture phase to ensure they run first
+    // Add listeners with capture phase
     document.addEventListener('touchstart', handleInteraction, true);
     document.addEventListener('touchend', handleInteraction, true);
     document.addEventListener('click', handleInteraction, true);
@@ -109,11 +110,11 @@ export function LanguageSelector({
         silentAudioRef.current.pause();
         silentAudioRef.current = null;
       }
-      if (ctx.state !== 'closed') {
-        ctx.close();
+      if (audioContext && audioContext.state !== 'closed') {
+        audioContext.close();
       }
     };
-  }, []);
+  }, [audioContext, isTTSEnabled]);
 
   // Update previous text refs when new text arrives
   useEffect(() => {
@@ -243,7 +244,12 @@ export function LanguageSelector({
   // Add TTS preload effect
   useEffect(() => {
     const initializeTTSPreload = async () => {
-      if (!isTTSEnabled || isTTSPreloaded) return;
+      if (!isTTSEnabled) {
+        setIsTTSPreloaded(false);
+        return;
+      }
+
+      if (isTTSPreloaded) return;
 
       try {
         // Warm up with silent audio
@@ -255,6 +261,7 @@ export function LanguageSelector({
         // Pre-create audio context
         if (!audioContext) {
           const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          await ctx.resume();
           setAudioContext(ctx);
         }
 
@@ -266,10 +273,23 @@ export function LanguageSelector({
     };
 
     initializeTTSPreload();
+  }, [isTTSEnabled, audioContext, isTTSPreloaded]);
+
+  // Cleanup TTS resources when disabled
+  useEffect(() => {
+    if (!isTTSEnabled) {
+      cleanupAudio();
+      if (audioContext) {
+        audioContext.close();
+        setAudioContext(null);
+      }
+      setIsTTSPreloaded(false);
+      console.log('Cleaned up TTS resources');
+    }
   }, [isTTSEnabled]);
 
   const playTranslatedText = async () => {
-    if (!translatedText || isPlaying || isLoadingAudio || !isTTSPreloaded) return;
+    if (!translatedText || isPlaying || isLoadingAudio || !isTTSPreloaded || !isTTSEnabled) return;
     
     const startTime = performance.now();
     let fetchStartTime = 0;
@@ -282,8 +302,12 @@ export function LanguageSelector({
       setIsLoadingAudio(true);
       console.log('🎵 Starting TTS process...');
       
-      // Use preloaded context
-      const ctx = audioContext || new (window.AudioContext || (window as any).webkitAudioContext)();
+      // Ensure audio context is ready
+      if (!audioContext || audioContext.state === 'suspended') {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        await ctx.resume();
+        setAudioContext(ctx);
+      }
       
       // Keep context active with silent audio
       silentAudioRef.current?.play().catch(() => {});
@@ -401,8 +425,8 @@ Te
           await new Promise(resolve => setTimeout(resolve, baseDelay));
           
           // Try to resume audio context before retry
-          if (ctx.state === 'suspended') {
-            await ctx.resume();
+          if (audioContext?.state === 'suspended') {
+            await audioContext.resume();
           }
         }
       }
@@ -435,17 +459,6 @@ Te
       setIsWelcomeMessageFaded(false);
     }
   }, [isListening]);
-
-  useEffect(() => {
-    return () => {
-      if (!isTTSEnabled && audioContext) {
-        audioContext.close();
-        setAudioContext(null);
-        setIsTTSPreloaded(false);
-        console.log('Cleaned up TTS resources');
-      }
-    };
-  }, [isTTSEnabled]);
 
   return (
     <div className={`relative ${showWelcomeMessage ? 'h-[calc(100vh-64px)]' : 'min-h-[60vh]'} bg-white`}>

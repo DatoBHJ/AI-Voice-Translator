@@ -1,5 +1,7 @@
 # (kinda) Real-Time AI Voice Translator 
 
+> Why "kinda"? STT & translation work great, but iOS autoplay rules make auto TTS a bit fussy. 
+
 ![Translation Interface](./assets/images/0.png)
 ![Voice Settings](./assets/images/1.png)
 

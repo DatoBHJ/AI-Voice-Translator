@@ -12,7 +12,7 @@ Groq for STT & language detection, ElevenLabs for TTS and DeepSeek for translati
 
 ## A simpler translator
 
-Built for simplicity - auto-detects languages, clean minimal interface, no endless scrolling through language options. Just speak and translate.
+Built for simplicity - auto-detects languages, clean minimal interface, no endless scrolling through language options, minimal buttons. Just name 2 languages and you're ready to translate.
 
 ## Quick Start
 1. Install dependencies

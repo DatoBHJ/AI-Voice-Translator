@@ -53,7 +53,7 @@ export function LanguageSelector({
   // Initialize audio context and silent audio
   useEffect(() => {
     // Create a silent audio element with a very short duration
-    const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV");
+    const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV");
     silentAudio.setAttribute('playsinline', 'true');
     silentAudio.setAttribute('webkit-playsinline', 'true');
     silentAudioRef.current = silentAudio;
@@ -282,13 +282,8 @@ export function LanguageSelector({
       setIsLoadingAudio(true);
       console.log('🎵 Starting TTS process...');
       
-      // Initialize or resume audio context
-      if (!audioContext) {
-        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        setAudioContext(ctx);
-      } else if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-      }
+      // Use preloaded context
+      const ctx = audioContext || new (window.AudioContext || (window as any).webkitAudioContext)();
       
       // Keep context active with silent audio
       silentAudioRef.current?.play().catch(() => {});
@@ -381,18 +376,6 @@ export function LanguageSelector({
 
       while (playAttempts < maxAttempts) {
         try {
-          // Try to resume audio context before playing
-          if (audioContext?.state === 'suspended') {
-            await audioContext.resume();
-          }
-          
-          // Load the audio before playing
-          await new Promise((resolve, reject) => {
-            audio.addEventListener('loadeddata', resolve, { once: true });
-            audio.addEventListener('error', reject, { once: true });
-            audio.load();
-          });
-          
           await audio.play();
           const playSuccessTime = performance.now();
           console.log(`
@@ -403,6 +386,7 @@ export function LanguageSelector({
 - Playback Preparation: ${(playStartTime - blobEndTime).toFixed(2)}ms
 - Play Success: ${(playSuccessTime - playStartTime).toFixed(2)}ms
 - Total Latency: ${(playSuccessTime - startTime).toFixed(2)}ms
+Te
           `);
           break;
         } catch (error) {
@@ -415,9 +399,14 @@ export function LanguageSelector({
 
           // Short delay before retry
           await new Promise(resolve => setTimeout(resolve, baseDelay));
+          
+          // Try to resume audio context before retry
+          if (ctx.state === 'suspended') {
+            await ctx.resume();
+          }
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       const errorTime = performance.now();
       console.error(`🎵 Audio playback failed at ${(errorTime - startTime).toFixed(2)}ms:`, error);
       if (error instanceof Error && error.name === 'AbortError') {

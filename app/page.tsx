@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { LanguageSelector } from '@/components/language-selector';
 import { MessageDisplay } from '@/components/message-display';
 import { useAudioRecorder } from '@/hooks/use-audio';
@@ -37,11 +37,43 @@ export default function Home() {
   const [currentMode, setCurrentMode] = useState("Quiet Room");
   const [isTTSEnabled, setIsTTSEnabled] = useState(true);
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const [metrics, setMetrics] = useState<{
     sttLatency?: number;
     translationLatency?: number;
     totalLatency?: number;
   }>({});
+
+  // Initialize audio context early
+  useEffect(() => {
+    const initAudio = async () => {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      
+      const unlockAudio = async () => {
+        if (audioContextRef.current?.state === 'suspended') {
+          await audioContextRef.current.resume();
+        }
+        document.removeEventListener('touchstart', unlockAudio);
+        document.removeEventListener('touchend', unlockAudio);
+        document.removeEventListener('click', unlockAudio);
+      };
+
+      document.addEventListener('touchstart', unlockAudio);
+      document.addEventListener('touchend', unlockAudio);
+      document.addEventListener('click', unlockAudio);
+    };
+
+    initAudio();
+
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+    };
+  }, []);
 
   const processAudio = async (audioBlob: Blob) => {
     if (processingRef.current) {

@@ -125,17 +125,28 @@ export function LanguageSelector({
   // Track when TTS is enabled
   useEffect(() => {
     if (isTTSEnabled) {
-      ttsEnableTimeRef.current = Date.now();
+      ttsEnableTimeRef.current = 0; // Set to 0 to allow playing any translations
+      // Try to initialize audio context immediately
+      if (audioContext?.state === 'suspended') {
+        audioContext.resume().catch(console.error);
+      }
+      // Try to play silent audio to unlock audio playback
+      silentAudioRef.current?.play().catch(() => {});
     }
-  }, [isTTSEnabled]);
+  }, [isTTSEnabled, audioContext]);
 
   // Track when new translations arrive
   useEffect(() => {
     if (translatedText !== previousTranslatedTextRef.current) {
       lastTranslationTimeRef.current = Date.now();
       previousTranslatedTextRef.current = translatedText;
+      
+      // Automatically play TTS if enabled
+      if (isTTSEnabled && !isPlaying && !isLoadingAudio) {
+        playTranslatedText();
+      }
     }
-  }, [translatedText]);
+  }, [translatedText, isTTSEnabled, isPlaying, isLoadingAudio]);
 
   // Handle TTS playback
   useEffect(() => {

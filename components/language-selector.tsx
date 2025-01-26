@@ -58,44 +58,43 @@ export function LanguageSelector({
     silentAudio.setAttribute('webkit-playsinline', 'true');
     silentAudioRef.current = silentAudio;
 
+    // Create audio context
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    setAudioContext(ctx);
+
     // Function to initialize audio
     const initializeAudio = async () => {
       try {
-        // Create audio context only if it doesn't exist
-        if (!audioContext) {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          setAudioContext(ctx);
-          
-          if (ctx.state === 'suspended') {
-            await ctx.resume();
-          }
+        if (ctx.state === 'suspended') {
+          await ctx.resume();
         }
-        
-        // Try to play silent audio
-        if (silentAudioRef.current) {
-          await silentAudioRef.current.play();
-          silentAudioRef.current.pause();
-        }
-        
+        await silentAudio.play();
         console.log('Audio context initialized successfully');
       } catch (error) {
         console.log('Audio initialization attempt failed:', error);
       }
     };
 
-    // Try to initialize on mount
-    if (isTTSEnabled) {
-      initializeAudio();
-    }
+    // Try to initialize immediately and preload
+    initializeAudio();
+    silentAudio.load(); // Preload silent audio
 
-    // Add interaction listeners
+    // Also try on user interaction
     const handleInteraction = () => {
-      if (isTTSEnabled && (!audioContext || audioContext.state === 'suspended')) {
-        initializeAudio();
+      if (ctx.state === 'suspended') {
+        initializeAudio().then(() => {
+          // Remove listeners only after successful initialization
+          if (ctx.state === 'running') {
+            document.removeEventListener('touchstart', handleInteraction, true);
+            document.removeEventListener('touchend', handleInteraction, true);
+            document.removeEventListener('click', handleInteraction, true);
+            document.removeEventListener('keydown', handleInteraction, true);
+          }
+        });
       }
     };
 
-    // Add listeners with capture phase
+    // Add listeners with capture phase to ensure they run first
     document.addEventListener('touchstart', handleInteraction, true);
     document.addEventListener('touchend', handleInteraction, true);
     document.addEventListener('click', handleInteraction, true);
@@ -110,11 +109,11 @@ export function LanguageSelector({
         silentAudioRef.current.pause();
         silentAudioRef.current = null;
       }
-      if (audioContext && audioContext.state !== 'closed') {
-        audioContext.close();
+      if (ctx.state !== 'closed') {
+        ctx.close();
       }
     };
-  }, [audioContext, isTTSEnabled]);
+  }, []);
 
   // Update previous text refs when new text arrives
   useEffect(() => {
@@ -244,12 +243,7 @@ export function LanguageSelector({
   // Add TTS preload effect
   useEffect(() => {
     const initializeTTSPreload = async () => {
-      if (!isTTSEnabled) {
-        setIsTTSPreloaded(false);
-        return;
-      }
-
-      if (isTTSPreloaded) return;
+      if (!isTTSEnabled || isTTSPreloaded) return;
 
       try {
         // Warm up with silent audio
@@ -261,7 +255,6 @@ export function LanguageSelector({
         // Pre-create audio context
         if (!audioContext) {
           const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          await ctx.resume();
           setAudioContext(ctx);
         }
 
@@ -273,23 +266,10 @@ export function LanguageSelector({
     };
 
     initializeTTSPreload();
-  }, [isTTSEnabled, audioContext, isTTSPreloaded]);
-
-  // Cleanup TTS resources when disabled
-  useEffect(() => {
-    if (!isTTSEnabled) {
-      cleanupAudio();
-      if (audioContext) {
-        audioContext.close();
-        setAudioContext(null);
-      }
-      setIsTTSPreloaded(false);
-      console.log('Cleaned up TTS resources');
-    }
   }, [isTTSEnabled]);
 
   const playTranslatedText = async () => {
-    if (!translatedText || isPlaying || isLoadingAudio || !isTTSPreloaded || !isTTSEnabled) return;
+    if (!translatedText || isPlaying || isLoadingAudio || !isTTSPreloaded) return;
     
     const startTime = performance.now();
     let fetchStartTime = 0;
@@ -302,12 +282,8 @@ export function LanguageSelector({
       setIsLoadingAudio(true);
       console.log('🎵 Starting TTS process...');
       
-      // Ensure audio context is ready
-      if (!audioContext || audioContext.state === 'suspended') {
-        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        await ctx.resume();
-        setAudioContext(ctx);
-      }
+      // Use preloaded context
+      const ctx = audioContext || new (window.AudioContext || (window as any).webkitAudioContext)();
       
       // Keep context active with silent audio
       silentAudioRef.current?.play().catch(() => {});
@@ -425,8 +401,8 @@ Te
           await new Promise(resolve => setTimeout(resolve, baseDelay));
           
           // Try to resume audio context before retry
-          if (audioContext?.state === 'suspended') {
-            await audioContext.resume();
+          if (ctx.state === 'suspended') {
+            await ctx.resume();
           }
         }
       }
@@ -459,6 +435,31 @@ Te
       setIsWelcomeMessageFaded(false);
     }
   }, [isListening]);
+
+  useEffect(() => {
+    return () => {
+      if (!isTTSEnabled && audioContext) {
+        audioContext.close();
+        setAudioContext(null);
+        setIsTTSPreloaded(false);
+        console.log('Cleaned up TTS resources');
+      }
+    };
+  }, [isTTSEnabled]);
+
+  useEffect(() => {
+    const initAudio = async () => {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // 사용자 상호작용 없이 자동 재생 시도 방지
+      if (ctx.state === 'suspended') {
+        document.addEventListener('click', async () => {
+          await ctx.resume();
+        }, { once: true });
+      }
+    };
+    initAudio();
+  }, []);
 
   return (
     <div className={`relative ${showWelcomeMessage ? 'h-[calc(100vh-64px)]' : 'min-h-[60vh]'} bg-white`}>

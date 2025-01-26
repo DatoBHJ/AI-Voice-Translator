@@ -125,13 +125,20 @@ export function LanguageSelector({
   // Track when TTS is enabled
   useEffect(() => {
     if (isTTSEnabled) {
-      ttsEnableTimeRef.current = 0; // Set to 0 to allow playing any translations
-      // Try to initialize audio context immediately
-      if (audioContext?.state === 'suspended') {
-        audioContext.resume().catch(console.error);
-      }
-      // Try to play silent audio to unlock audio playback
-      silentAudioRef.current?.play().catch(() => {});
+      ttsEnableTimeRef.current = 0;
+      // Initialize audio context and unlock audio playback
+      const initAudio = async () => {
+        try {
+          if (audioContext?.state === 'suspended') {
+            await audioContext.resume();
+          }
+          await silentAudioRef.current?.play();
+          silentAudioRef.current?.pause();
+        } catch (error) {
+          console.error('Audio initialization error:', error);
+        }
+      };
+      initAudio();
     }
   }, [isTTSEnabled, audioContext]);
 
@@ -140,43 +147,36 @@ export function LanguageSelector({
     if (translatedText !== previousTranslatedTextRef.current) {
       lastTranslationTimeRef.current = Date.now();
       previousTranslatedTextRef.current = translatedText;
-      
-      // Automatically play TTS if enabled
-      if (isTTSEnabled && !isPlaying && !isLoadingAudio) {
-        playTranslatedText();
-      }
     }
-  }, [translatedText, isTTSEnabled, isPlaying, isLoadingAudio]);
+  }, [translatedText]);
 
   // Handle TTS playback
   useEffect(() => {
     if (!translatedText || !isTTSEnabled) return;
 
-    // Only play TTS if the translation came after TTS was enabled
-    const shouldPlayTTS = lastTranslationTimeRef.current >= ttsEnableTimeRef.current;
-    
-    if (shouldPlayTTS) {
-      // Try to resume audio context and play silent audio first
-      if (audioContext?.state === 'suspended') {
-        audioContext.resume();
-      }
-      silentAudioRef.current?.play().catch(() => {});
-
-      // Wait longer to ensure we have the complete translation
-      const timeoutId = setTimeout(() => {
-        // Double check if we have a complete sentence
-        if (
-          // translatedText.endsWith('.') || 
-          // translatedText.endsWith('!') || 
-          // translatedText.endsWith('?') ||
-          translatedText === previousTranslatedTextRef.current
-        ) {
-          playTranslatedText();
+    // Try to resume audio context and play silent audio first
+    const prepareAudio = async () => {
+      try {
+        if (audioContext?.state === 'suspended') {
+          await audioContext.resume();
         }
-      }, TRANSLATION_WAIT_TIME);
+        await silentAudioRef.current?.play();
+        silentAudioRef.current?.pause();
+      } catch (error) {
+        console.error('Audio preparation error:', error);
+      }
+    };
 
-      return () => clearTimeout(timeoutId);
-    }
+    prepareAudio();
+
+    // Wait for complete translation
+    const timeoutId = setTimeout(() => {
+      if (translatedText === previousTranslatedTextRef.current) {
+        playTranslatedText();
+      }
+    }, TRANSLATION_WAIT_TIME);
+
+    return () => clearTimeout(timeoutId);
   }, [translatedText, isTTSEnabled, audioContext]);
 
   useEffect(() => {
@@ -280,30 +280,32 @@ export function LanguageSelector({
   }, [isTTSEnabled]);
 
   const playTranslatedText = async () => {
-    if (!translatedText || isPlaying || isLoadingAudio || !isTTSPreloaded) return;
-    
-    const startTime = performance.now();
-    let fetchStartTime = 0;
-    let fetchEndTime = 0;
-    let blobStartTime = 0;
-    let blobEndTime = 0;
-    let playStartTime = 0;
+    if (!translatedText || isPlaying || isLoadingAudio) return;
 
+    const startTime = performance.now();
+    
     try {
       setIsLoadingAudio(true);
       console.log('🎵 Starting TTS process...');
-      
-      // Use preloaded context
-      const ctx = audioContext || new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      // Keep context active with silent audio
-      silentAudioRef.current?.play().catch(() => {});
+
+      // Ensure audio context is ready
+      if (audioContext?.state === 'suspended') {
+        await audioContext.resume();
+      }
+
+      // Try to play silent audio first
+      try {
+        await silentAudioRef.current?.play();
+        silentAudioRef.current?.pause();
+      } catch (error) {
+        console.warn('Silent audio play failed:', error);
+      }
 
       // Create a new Audio element
       const audio = new Audio();
       audio.setAttribute('playsinline', 'true');
       audio.setAttribute('webkit-playsinline', 'true');
-      
+
       // Set up audio event handlers
       audio.oncanplaythrough = () => {
         setIsLoadingAudio(false);
@@ -332,9 +334,7 @@ export function LanguageSelector({
       // Create abort controller for the fetch request
       abortControllerRef.current = new AbortController();
 
-      // Fetch the audio stream
-      fetchStartTime = performance.now();
-      console.log(`🎵 Starting API request... (${(fetchStartTime - startTime).toFixed(2)}ms since start)`);
+      console.log(`🎵 Starting API request...`);
       
       const response = await fetch('/api/speech/tts', {
         method: 'POST',
@@ -347,9 +347,6 @@ export function LanguageSelector({
         signal: abortControllerRef.current.signal,
       });
 
-      fetchEndTime = performance.now();
-      console.log(`🎵 API request completed (took ${(fetchEndTime - fetchStartTime).toFixed(2)}ms)`);
-
       if (!response.ok) {
         const errorData = await response.json();
         console.error('TTS API Error:', {
@@ -360,9 +357,6 @@ export function LanguageSelector({
         throw new Error(errorData.details || errorData.error || 'Failed to generate speech');
       }
 
-      blobStartTime = performance.now();
-      console.log(`🎵 Starting blob processing... (${(blobStartTime - startTime).toFixed(2)}ms since start)`);
-      
       const audioBlob = await response.blob();
       
       if (!audioBlob.type.startsWith('audio/')) {
@@ -374,16 +368,10 @@ export function LanguageSelector({
       audioUrlRef.current = audioUrl;
       audio.src = audioUrl;
 
-      blobEndTime = performance.now();
-      console.log(`🎵 Blob processing completed (took ${(blobEndTime - blobStartTime).toFixed(2)}ms)`);
-
       // Start playing with retry logic
       let playAttempts = 0;
       const maxAttempts = 3;
       const baseDelay = 50;
-
-      playStartTime = performance.now();
-      console.log(`🎵 Starting playback attempt... (${(playStartTime - startTime).toFixed(2)}ms since start)`);
 
       while (playAttempts < maxAttempts) {
         try {
@@ -391,13 +379,7 @@ export function LanguageSelector({
           const playSuccessTime = performance.now();
           console.log(`
 🎵 TTS Latency Breakdown:
-- Initial setup: ${(fetchStartTime - startTime).toFixed(2)}ms
-- API Request: ${(fetchEndTime - fetchStartTime).toFixed(2)}ms
-- Blob Processing: ${(blobEndTime - blobStartTime).toFixed(2)}ms
-- Playback Preparation: ${(playStartTime - blobEndTime).toFixed(2)}ms
-- Play Success: ${(playSuccessTime - playStartTime).toFixed(2)}ms
 - Total Latency: ${(playSuccessTime - startTime).toFixed(2)}ms
-Te
           `);
           break;
         } catch (error) {
@@ -408,26 +390,16 @@ Te
             throw error;
           }
 
-          // Short delay before retry
           await new Promise(resolve => setTimeout(resolve, baseDelay));
           
-          // Try to resume audio context before retry
-          if (ctx.state === 'suspended') {
-            await ctx.resume();
+          if (audioContext?.state === 'suspended') {
+            await audioContext.resume();
           }
         }
       }
-    } catch (error: unknown) {
-      const errorTime = performance.now();
-      console.error(`🎵 Audio playback failed at ${(errorTime - startTime).toFixed(2)}ms:`, error);
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Audio fetch aborted');
-      } else {
-        console.error('Failed to play audio:', error);
-      }
+    } catch (error) {
+      console.error('Failed to play audio:', error);
       cleanupAudio();
-    } finally {
-      setIsLoadingAudio(false);
     }
   };
 

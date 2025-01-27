@@ -1,4 +1,4 @@
-# AI Voice Translator 
+# Real-Time AI Voice Translator 
 
 1. Name two languages
 2. Start speaking in either language

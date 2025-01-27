@@ -75,17 +75,10 @@ export async function POST(req: NextRequest) {
     content: `Original: ${msg.originalText}\nTranslation: ${msg.translatedText}`
   })) || [];
 
-  const prompt = `You are a professional translator for ${languages[0].name} and ${languages[1].name}.
-Translate the following text from one language to the other.
-Only output the direct translation without any explanations or reasoning.
-Do not use XML tags or markdown in your response.
-
-Previous context (if needed):
-${previousMessages?.map((msg: any) => `${msg.originalText} → ${msg.translatedText}`).join('\n')}
-
-Text to translate: ${text}
-
-Remember: Output only the translation, nothing else.`;
+  const prompt = `You are a native speaker of both ${languages[0].name} and ${languages[1].name}.
+  Don't overthink - just understand the feeling of the sentence and express it naturally.
+  
+  Text to translate: ${text}`;
 
   try {
     // Use retry logic for the stream creation
@@ -93,13 +86,13 @@ Remember: Output only the translation, nothing else.`;
       return await client.chat.completions.create({
         model: 'deepseek-r1-distill-llama-70b',
         messages: [
-          ...contextMessages,
+          // ...contextMessages,
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.3,
+        temperature: 0.0,
         stream: true,
       });
     });

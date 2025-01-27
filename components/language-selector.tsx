@@ -540,7 +540,7 @@ export function LanguageSelector({
                 : isListening && showWelcomeMessage
                   ? "Name 2 Langs"
                   : isListening
-                    ? "Speaking"
+                    ? "Listening"
                     : "TAP"}
           </div>
         </div>

@@ -1,6 +1,8 @@
-# (kinda) Real-Time AI Voice Translator 
+# AI Voice Translator 
 
-> Why "kinda"? STT & translation work great, but iOS autoplay rules make auto TTS a bit fussy. 
+1. Name two languages
+2. Start speaking in either language
+3. Get instant translations
 
 ![Translation Interface](./assets/images/0.png)
 ![Voice Settings](./assets/images/1.png)
@@ -13,6 +15,8 @@ Groq for STT & language detection, ElevenLabs for TTS and DeepSeek for translati
 ## A simpler translator
 
 Built for simplicity - auto-detects languages, clean minimal interface, no endless scrolling through language options, minimal buttons. Just name 2 languages and you're ready to translate.
+
+> STT & translation work great, but iOS autoplay rules make auto TTS a bit fussy. 
 
 ## Quick Start
 1. Install dependencies

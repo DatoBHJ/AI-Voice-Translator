@@ -22,7 +22,8 @@ export interface VoiceSettings {
   smoothingTimeConstant: number;
 }
 
-// still needs more testing
+
+// still needs to be tuned
 export const environmentPresets = {
   quiet: {
     name: "Hotel Mode",
@@ -38,8 +39,8 @@ export const environmentPresets = {
     description: "For moderately noisy places like cafes and restaurants",
     settings: {
       silenceThreshold: -58,
-      silenceTimeout: 600,
-      smoothingTimeConstant: 0.4,
+      silenceTimeout: 800,
+      smoothingTimeConstant: 0.7,
     },
   },
   noisy: {
@@ -47,8 +48,8 @@ export const environmentPresets = {
     description: "For high noise areas with loud conversations and ambient sounds",
     settings: {
       silenceThreshold: -50,
-      silenceTimeout: 600,
-      smoothingTimeConstant: 0.3,
+      silenceTimeout: 800,
+      smoothingTimeConstant: 0.8,
     },
   },
 } as const;

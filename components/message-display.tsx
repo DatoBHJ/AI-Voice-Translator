@@ -78,13 +78,21 @@ export function MessageDisplay({ messages, currentLanguage }: MessageDisplayProp
             <div className={`flex ${isSentByUser ? 'justify-end' : 'justify-start'}`}>
               <div className={`relative max-w-[240px] ${isSentByUser ? 'send-bubble' : 'receive-bubble'}`}>
                 <p className="text-[15px] font-medium leading-[1.3]">
-                  {message.originalText}
+                  {message.originalText.includes('---') 
+                    ? message.originalText.split('---').pop()?.trim()
+                    : message.originalText.includes('<think>') 
+                      ? message.originalText.split('</think>').pop()?.trim()
+                      : message.originalText.trim()}
                 </p>
                 <p className={`
                   text-[15px] font-light leading-[1.3] mt-2
                   ${isSentByUser ? 'text-blue-50/90' : 'text-gray-600/90'}
                 `}>
-                  {message.translatedText}
+                  {message.translatedText.includes('---') 
+                    ? message.translatedText.split('---').pop()?.trim()
+                    : message.translatedText.includes('<think>') 
+                      ? message.translatedText.split('</think>').pop()?.trim()
+                      : message.translatedText.trim()}
                 </p>
               </div>
             </div>

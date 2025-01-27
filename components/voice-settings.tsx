@@ -22,14 +22,15 @@ export interface VoiceSettings {
   smoothingTimeConstant: number;
 }
 
+// still needs more testing
 export const environmentPresets = {
   quiet: {
     name: "Hotel Mode",
     description: "For quiet indoor spaces like hotels and museums",
     settings: {
       silenceThreshold: -65,
-      silenceTimeout: 400,
-      smoothingTimeConstant: 0.3,
+      silenceTimeout: 600,
+      smoothingTimeConstant: 0.6,
     },
   },
   moderate: {
@@ -47,7 +48,7 @@ export const environmentPresets = {
     settings: {
       silenceThreshold: -50,
       silenceTimeout: 600,
-      smoothingTimeConstant: 0.5,
+      smoothingTimeConstant: 0.3,
     },
   },
 } as const;

@@ -27,7 +27,6 @@ npm install
 2. Set environment variables (.env)
 ```env
 GROQ_API_KEY=your_groq_key
-DEEPSEEK_API_KEY=your_deepseek_key
 ELEVENLABS_API_KEY=your_elevenlabs_key
 ```
 

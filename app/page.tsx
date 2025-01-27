@@ -80,10 +80,10 @@ export default function Home() {
       return;
     }
 
-    // Check if the audio is too short (less than 0.5 seconds)
-    if (audioBlob.size < 15000) {  // Roughly 0.5s of audio at 128kbps
-      console.log('Audio too short, ignoring');
-      return;
+    // Check if the audio is too short (less than 0.3 seconds)
+    if (audioBlob.size < 10000) {  // 0.3s of audio at 128kbps
+      console.log('Too short but processing anyway');
+      // return; // 주석 처리하여 짧은 음성도 처리
     }
 
     try {

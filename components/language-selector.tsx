@@ -47,7 +47,7 @@ export function LanguageSelector({
   const silentAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isWelcomeMessageFaded, setIsWelcomeMessageFaded] = useState(false);
 
-  const TRANSLATION_WAIT_TIME = 50;
+  const TRANSLATION_WAIT_TIME = 20;
   const ANIMATION_DURATION = 200;
 
   // Initialize audio context and silent audio
@@ -281,12 +281,9 @@ export function LanguageSelector({
 
   const playTranslatedText = async () => {
     if (!translatedText || isPlaying || isLoadingAudio) return;
-
-    const startTime = performance.now();
     
     try {
       setIsLoadingAudio(true);
-      console.log('🎵 Starting TTS process...');
 
       // Ensure audio context is ready
       if (audioContext?.state === 'suspended') {
@@ -313,8 +310,6 @@ export function LanguageSelector({
       };
       
       audio.onended = () => {
-        const totalDuration = performance.now() - startTime;
-        console.log(`🎵 Audio playback ended (total duration: ${totalDuration.toFixed(2)}ms)`);
         cleanupAudio();
       };
       
@@ -333,8 +328,6 @@ export function LanguageSelector({
 
       // Create abort controller for the fetch request
       abortControllerRef.current = new AbortController();
-
-      console.log(`🎵 Starting API request...`);
       
       const response = await fetch('/api/speech/tts', {
         method: 'POST',
@@ -344,27 +337,19 @@ export function LanguageSelector({
         body: JSON.stringify({
           text: translatedText.includes('---') 
             ? translatedText.split('---').pop()?.trim() 
-            : translatedText.includes('<think>') 
-              ? translatedText.split('</think>').pop()?.trim()
-              : translatedText.trim(),
+            : translatedText.trim(),
         }),
         signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('TTS API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData
-        });
         throw new Error(errorData.details || errorData.error || 'Failed to generate speech');
       }
 
       const audioBlob = await response.blob();
       
       if (!audioBlob.type.startsWith('audio/')) {
-        console.error('Invalid audio format:', audioBlob.type);
         throw new Error(`Invalid audio format: ${audioBlob.type}`);
       }
 
@@ -380,15 +365,9 @@ export function LanguageSelector({
       while (playAttempts < maxAttempts) {
         try {
           await audio.play();
-          const playSuccessTime = performance.now();
-          console.log(`
-🎵 TTS Latency Breakdown:
-- Total Latency: ${(playSuccessTime - startTime).toFixed(2)}ms
-          `);
           break;
         } catch (error) {
           playAttempts++;
-          console.error(`Play attempt ${playAttempts} failed:`, error);
           
           if (playAttempts === maxAttempts) {
             throw error;
@@ -476,9 +455,7 @@ export function LanguageSelector({
               <p className="text-[20px] tracking-[0.1em] text-neutral-900 font-light">
                 {translatedText.includes('---') 
                   ? translatedText.split('---').pop()?.trim() 
-                  : translatedText.includes('<think>') 
-                    ? translatedText.split('</think>').pop()?.trim()
-                    : translatedText.trim()}
+                  : translatedText.trim()}
               </p>
               {isTTSEnabled && (
                 <button
@@ -554,4 +531,4 @@ export function LanguageSelector({
       </div>
     </div>
   );
-} 
+}

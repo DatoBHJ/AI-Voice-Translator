@@ -99,7 +99,7 @@ export function useAudioRecorder({
       if (event.data.size > 0) {
         preBufferRef.current.push(event.data);
         // Keep only last 1 second of pre-buffer
-        if (preBufferRef.current.length > 3) { // 250ms * 4 = 1 second
+        if (preBufferRef.current.length > 2) { // 250ms * 2 = .5 second
           preBufferRef.current.shift();
         }
       }
@@ -118,7 +118,8 @@ export function useAudioRecorder({
     let weightedSum = 0;
     let weightSum = 0;
     for (let i = 0; i < dataArray.length; i++) {
-      const weight = Math.pow(i / dataArray.length, 2) + 0.5; // Give more weight to higher frequencies
+      const freq = (i * audioContextRef.current!.sampleRate) / analyserRef.current!.fftSize;
+      const weight = freq >= 300 && freq <= 3400 ? 1.5 : 0.7; // 300-3400Hz
       weightedSum += dataArray[i] * weight;
       weightSum += weight;
     }

@@ -4,6 +4,15 @@ import OpenAI from 'openai';
 // Edge Runtime declaration
 export const runtime = 'edge';
 
+interface WhisperResponse extends OpenAI.Audio.Transcription {
+  segments?: Array<{
+    no_speech_prob: number;
+    avg_logprob: number;
+    compression_ratio: number;
+  }>;
+  language?: string;
+}
+
 // Initialize OpenAI client
 const client = new OpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
@@ -58,7 +67,10 @@ export async function POST(req: NextRequest) {
       model: 'whisper-large-v3',
       temperature: 0.0,
       response_format: 'verbose_json',
-    });
+      ...(languages && {
+        prompt: `This audio is in either ${languages[0].name} (${languages[0].code}) or ${languages[1].name} (${languages[1].code}). Transcribe it accordingly.`
+      })
+    }) as WhisperResponse;
 
     const sttEndTime = performance.now();
     const sttLatency = sttEndTime - startTime;

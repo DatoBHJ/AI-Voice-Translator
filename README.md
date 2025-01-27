@@ -10,7 +10,9 @@
 [![Next.js](https://img.shields.io/badge/Next.js-14.2.3-black?style=flat&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 
-Groq for STT & language detection, ElevenLabs for TTS and DeepSeek for translation.
+STT, language detection, and translation powered by Groq. TTS powered by ElevenLabs.
+whisper-large-v3 for STT.
+deepseek-r1 for translation.
 
 ## A simpler translator
 

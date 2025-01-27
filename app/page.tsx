@@ -198,7 +198,8 @@ export default function Home() {
                 translationLatency: metrics.totalLatency,
                 totalLatency: performance.now() - startTime
               });
-            }
+            },
+            previousMessages: messages.slice(-3) // Send last 3 messages as context
           }
         );
 

@@ -7,9 +7,15 @@ interface TranslationMetrics {
   translationLatency?: number;
 }
 
+interface Message {
+  originalText: string;
+  translatedText: string;
+}
+
 interface TranslationOptions {
   onPartial?: (text: string) => void;
   onMetrics?: (metrics: TranslationMetrics) => void;
+  previousMessages?: Message[];
 }
 
 export async function translateText(
@@ -20,7 +26,11 @@ export async function translateText(
   const response = await fetch('/api/translate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, languages }),
+    body: JSON.stringify({ 
+      text, 
+      languages,
+      previousMessages: options?.previousMessages 
+    }),
   });
 
   if (!response.ok) {

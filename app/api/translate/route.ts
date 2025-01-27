@@ -40,7 +40,7 @@ async function withRetry<T>(
 }
 
 export async function POST(req: NextRequest) {
-  const { text, languages } = await req.json();
+  const { text, languages, previousMessages } = await req.json();
   const startTime = performance.now();
 
   if (!text || !languages || languages.length !== 2) {
@@ -69,9 +69,27 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Create context from previous messages
+  const contextMessages = previousMessages?.map((msg: any) => ({
+    role: 'assistant',
+    content: `Original: ${msg.originalText}\nTranslation: ${msg.translatedText}`
+  })) || [];
+
   const prompt = `You are a professional translator for ${languages[0].name} and ${languages[1].name}.
 First, determine if the input text is in ${languages[0].name} or ${languages[1].name}.
 Then, translate the text to the other language while maintaining the original meaning and nuance.
+
+I'll provide you with recent conversation history for context, but note that the current text might be:
+1. A continuation of the previous conversation
+2. A completely new topic
+3. A standalone message
+
+Use the conversation history only when it clearly helps understand ambiguous expressions or context-dependent terms.
+Do not force connections with previous messages if the current text appears to be independent.
+
+Previous conversation (if any):
+${previousMessages?.map((msg: any) => `${msg.originalText} → ${msg.translatedText}`).join('\n')}
+
 Respond with only the translation, no explanations.
 
 Text to translate: ${text}`;
@@ -82,6 +100,7 @@ Text to translate: ${text}`;
       return await client.chat.completions.create({
         model: 'deepseek-r1-distill-llama-70b',
         messages: [
+          ...contextMessages,
           {
             role: 'user',
             content: prompt

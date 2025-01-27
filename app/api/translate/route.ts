@@ -8,8 +8,8 @@ const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 1000;
 
 const client = new OpenAI({
-  baseURL: 'https://api.deepseek.com/v1',
-  apiKey: process.env.DEEPSEEK_API_KEY || '',
+  baseURL: 'https://api.groq.com/openai/v1',
+  apiKey: process.env.GROQ_API_KEY || '',
 });
 
 // Smart retry function
@@ -80,7 +80,7 @@ Text to translate: ${text}`;
     // Use retry logic for the stream creation
     const stream = await withRetry(async () => {
       return await client.chat.completions.create({
-        model: 'deepseek-chat',
+        model: 'deepseek-r1-distill-llama-70b',
         messages: [
           {
             role: 'user',
@@ -98,6 +98,7 @@ Text to translate: ${text}`;
       async start(controller) {
         try {
           let firstChunkTime: number | null = null;
+          let accumulatedContent = '';
           
           for await (const chunk of stream) {
             const content = chunk.choices[0]?.delta?.content;
@@ -113,12 +114,19 @@ Text to translate: ${text}`;
                 })}\n\n`;
                 controller.enqueue(textEncoder.encode(metricsMessage));
               }
-              
-              // Send the chunk as a Server-Sent Event
-              const message = `data: ${JSON.stringify({ content })}\n\n`;
-              controller.enqueue(textEncoder.encode(message));
+
+              // Accumulate content instead of sending immediately
+              accumulatedContent += content;
             }
           }
+          
+          // Send the complete accumulated content
+          if (accumulatedContent) {
+            console.log(accumulatedContent);
+            const message = `data: ${JSON.stringify({ content: accumulatedContent })}\n\n`;
+            controller.enqueue(textEncoder.encode(message));
+          }
+
           // Send a completion message with final metrics
           const endTime = performance.now();
           const totalLatency = endTime - startTime;

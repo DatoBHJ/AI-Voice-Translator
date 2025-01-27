@@ -342,7 +342,11 @@ export function LanguageSelector({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: translatedText,
+          text: translatedText.includes('---') 
+            ? translatedText.split('---').pop()?.trim() 
+            : translatedText.includes('<think>') 
+              ? translatedText.split('</think>').pop()?.trim()
+              : translatedText.trim(),
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -471,7 +475,11 @@ export function LanguageSelector({
           {(translatedText) && (
             <div className="flex flex-col items-center space-y-2">
               <p className="text-[20px] tracking-[0.1em] text-neutral-900 font-light">
-                {translatedText}
+                {translatedText.includes('---') 
+                  ? translatedText.split('---').pop()?.trim() 
+                  : translatedText.includes('<think>') 
+                    ? translatedText.split('</think>').pop()?.trim()
+                    : translatedText.trim()}
               </p>
               {isTTSEnabled && (
                 <button

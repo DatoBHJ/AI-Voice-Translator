@@ -28,8 +28,8 @@ export const environmentPresets = {
     description: "For quiet indoor spaces like hotels and museums",
     settings: {
       silenceThreshold: -65,
-      silenceTimeout: 600,
-      smoothingTimeConstant: 0.6,
+      silenceTimeout: 400,
+      smoothingTimeConstant: 0.3,
     },
   },
   moderate: {
@@ -37,8 +37,8 @@ export const environmentPresets = {
     description: "For moderately noisy places like cafes and restaurants",
     settings: {
       silenceThreshold: -58,
-      silenceTimeout: 800,
-      smoothingTimeConstant: 0.7,
+      silenceTimeout: 600,
+      smoothingTimeConstant: 0.4,
     },
   },
   noisy: {
@@ -46,8 +46,8 @@ export const environmentPresets = {
     description: "For high noise areas with loud conversations and ambient sounds",
     settings: {
       silenceThreshold: -50,
-      silenceTimeout: 800,
-      smoothingTimeConstant: 0.8,
+      silenceTimeout: 600,
+      smoothingTimeConstant: 0.5,
     },
   },
 } as const;

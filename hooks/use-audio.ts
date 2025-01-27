@@ -92,14 +92,14 @@ export function useAudioRecorder({
     const mimeType = getSupportedMimeType();
     const recorder = new MediaRecorder(streamRef.current, {
       mimeType,
-      audioBitsPerSecond: 96000
+      audioBitsPerSecond: 64000
     });
     
     recorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
         preBufferRef.current.push(event.data);
         // Keep only last 1 second of pre-buffer
-        if (preBufferRef.current.length > 4) { // 250ms * 4 = 1 second
+        if (preBufferRef.current.length > 3) { // 250ms * 4 = 1 second
           preBufferRef.current.shift();
         }
       }
@@ -151,6 +151,9 @@ export function useAudioRecorder({
         recordingStartRef.current();
       }
     }
+
+    analyserRef.current.fftSize = 2048;
+    analyserRef.current.minDecibels = -70; 
   }, [isRecording, isListening, silenceThreshold, silenceTimeout]);
 
   const startRecording = useCallback(async () => {

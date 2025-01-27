@@ -47,8 +47,8 @@ export function LanguageSelector({
   const silentAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isWelcomeMessageFaded, setIsWelcomeMessageFaded] = useState(false);
 
-  const TRANSLATION_WAIT_TIME = 100; 
-  const ANIMATION_DURATION = 400;
+  const TRANSLATION_WAIT_TIME = 50;
+  const ANIMATION_DURATION = 200;
 
   // Initialize audio context and silent audio
   useEffect(() => {
@@ -438,7 +438,6 @@ export function LanguageSelector({
     const initAudio = async () => {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       
-      // 사용자 상호작용 없이 자동 재생 시도 방지
       if (ctx.state === 'suspended') {
         document.addEventListener('click', async () => {
           await ctx.resume();

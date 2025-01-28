@@ -52,9 +52,9 @@ export const environmentPresets = {
       smoothingTimeConstant: 0.8,
     },
   },
-  rapidDialog: {
-    name: "Rapid Mode",
-    description: "For fast-paced conversations with quick turn-taking",
+  default: {
+    name: "Default",
+    description: "Default settings",
     settings: {
       silenceThreshold: -45,
       silenceTimeout: 400,
@@ -63,7 +63,7 @@ export const environmentPresets = {
   },
 } as const;
 
-export const defaultVoiceSettings = environmentPresets.moderate.settings;
+export const defaultVoiceSettings = environmentPresets.default.settings;
 
 export function VoiceSettings({ onSettingsChange, currentSettings, onOpenChange }: VoiceSettingsProps) {
   const [currentMode, setCurrentMode] = React.useState(() => {

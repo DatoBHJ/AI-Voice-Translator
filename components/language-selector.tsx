@@ -251,6 +251,11 @@ export function LanguageSelector({
     setIsLoadingAudio(false);
   };
 
+  // Function to remove emojis from text
+  const removeEmojis = (text: string) => {
+    return text.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+  };
+
   // Add TTS preload effect
   useEffect(() => {
     const initializeTTSPreload = async () => {
@@ -329,15 +334,18 @@ export function LanguageSelector({
       // Create abort controller for the fetch request
       abortControllerRef.current = new AbortController();
       
+      // Get clean text without emojis
+      const cleanText = translatedText.includes('---') 
+        ? removeEmojis(translatedText.split('---').pop()?.trim() || '')
+        : removeEmojis(translatedText.trim());
+      
       const response = await fetch('/api/speech/tts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: translatedText.includes('---') 
-            ? translatedText.split('---').pop()?.trim() 
-            : translatedText.trim(),
+          text: cleanText,
         }),
         signal: abortControllerRef.current.signal,
       });

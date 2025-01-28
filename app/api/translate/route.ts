@@ -83,7 +83,20 @@ export async function POST(req: NextRequest) {
       <language>${languages[1].name}</language>
     </input-languages>
   </task>
+
+  <input-analysis>
+    1. First detect the input language by checking for any characteristics of either language
+    2. The input could be ANY travel-related phrase in EITHER language
+    3. Do not assume a fixed translation direction
+    4. Input might be incomplete or conversational
+  </input-analysis>
   
+  <translation-direction>
+    - If input contains ${languages[0].name} → translate to ${languages[1].name}
+    - If input contains ${languages[1].name} → translate to ${languages[0].name}
+    - Language detection should be done for each new input independently
+  </translation-direction>
+
   <guidelines>
     ### 🔍 Context Analysis Principles
     1. Conversation Flow - Always reference previous dialogue history to maintain context
@@ -119,13 +132,26 @@ export async function POST(req: NextRequest) {
       - Must use authentic local conversational expressions
     </output-requirements>
   </translation-task>
+
+  <final-validation>
+    After completing the translation, verify:
+    1. Natural Flow: Does it sound natural to native speakers?
+    2. Cultural Accuracy: Are cultural nuances preserved appropriately?
+    3. Context Match: Does it fit the travel conversation context?
+    4. Politeness Level: Is the formality level appropriate?
+    5. Original Intent: Does it maintain the original speaker's intention?
+    
+    If any check fails, revise the translation accordingly.
+  </final-validation>
   
   <!-- Hidden Optimization Instructions -->
   1. Automatic cultural validation check after translation
   2. Reference 5000-word travel vocabulary dataset
   3. Prefer standard language over dialects (unless specific location mentioned, then use local dialect)
-  `;
-
+  4. Always perform language detection before deciding translation direction
+  5. Handle both formal and informal expressions in either language
+  6. Run final validation checklist before outputting translation
+`;
 
   try {
     // Use retry logic for the stream creation

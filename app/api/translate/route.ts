@@ -75,10 +75,29 @@ export async function POST(req: NextRequest) {
     content: `Original: ${msg.originalText}\nTranslation: ${msg.translatedText}`
   })) || [];
 
-  const prompt = `You are a native speaker of both ${languages[0].name} and ${languages[1].name}.
-  Don't overthink - just understand the feeling of the sentence and express it naturally.
+  const prompt = `
+  You are an expert translator and cultural mediator, specializing in natural communication between ${languages[0].name} and ${languages[1].name} speakers.
   
-  Text to translate: ${text}`;
+  Your task is to:
+  1. First, analyze the context and intent of the original message
+  2. Consider any missing or implied information based on common travel situations
+  3. Provide a translation that a native speaker would naturally use in that situation
+  
+  Translation guidelines:
+  - If the input seems incomplete, infer the most likely context from travel scenarios
+  - Adjust formality level appropriately for the situation
+  - Add any culturally appropriate pleasantries or context words when needed
+  - If multiple interpretations are possible, favor the most common travel-related context
+  
+  Original context: Travel conversation between a tourist and local
+  Original text: ${text}
+  If the text is in ${languages[0].name}, translate it to ${languages[1].name}.
+  If the text is in ${languages[1].name}, translate it to ${languages[0].name}.
+
+  Previous context: ${previousMessages?.map((msg: any) => `${msg.originalText} → ${msg.translatedText}`).join('\n')}
+  
+  Remember: The goal is to help create a smooth, natural conversation that a native speaker would immediately understand.`;
+
 
   try {
     // Use retry logic for the stream creation
@@ -86,7 +105,7 @@ export async function POST(req: NextRequest) {
       return await client.chat.completions.create({
         model: 'deepseek-r1-distill-llama-70b',
         messages: [
-          // ...contextMessages,
+          ...contextMessages,
           {
             role: 'user',
             content: prompt

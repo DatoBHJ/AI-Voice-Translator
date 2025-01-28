@@ -76,27 +76,55 @@ export async function POST(req: NextRequest) {
   })) || [];
 
   const prompt = `
-  You are an expert translator and cultural mediator, specializing in natural communication between ${languages[0].name} and ${languages[1].name} speakers.
+  <task type="bidirectional-translation">
+    <role expertise="translation-expert cultural-mediator travel-conversation"/>
+    <input-languages>
+      <language>${languages[0].name}</language>
+      <language>${languages[1].name}</language>
+    </input-languages>
+  </task>
   
-  Your task is to:
-  1. First, analyze the context and intent of the original message
-  2. Consider any missing or implied information based on common travel situations
-  3. Provide a translation that a native speaker would naturally use in that situation
+  <guidelines>
+    ### 🔍 Context Analysis Principles
+    1. Conversation Flow - Always reference previous dialogue history to maintain context
+    2. Intent Inference - "Where toilet?" → "Excuse me, could you please direct me to the restroom?"
+    3. Cultural Adaptation - Auto-adjust number formats, time expressions, and politeness levels
   
-  Translation guidelines:
-  - If the input seems incomplete, infer the most likely context from travel scenarios
-  - Adjust formality level appropriately for the situation
-  - Add any culturally appropriate pleasantries or context words when needed
-  - If multiple interpretations are possible, favor the most common travel-related context
+    ### ✍️ Translation Rules
+    - [Required] Distinguish between tourist ↔ local speech patterns
+    - [Prohibited] Avoid literal translations - prioritize natural conversational expressions
+    - [Additional] Include travel-related context when needed (e.g., "Bus 143" → "Bus 143 (City Circle Route)")
   
-  Original context: Travel conversation between a tourist and local
-  Original text: ${text}
-  If the text is in ${languages[0].name}, translate it to ${languages[1].name}.
-  If the text is in ${languages[1].name}, translate it to ${languages[0].name}.
-
-  Previous context: ${previousMessages?.map((msg: any) => `${msg.originalText} → ${msg.translatedText}`).join('\n')}
+    ### ↔️ Bidirectional Translation Conditions
+    <direction condition="${text.includes(languages[0].character)}">
+      ${languages[0].name} → ${languages[1].name} conversion
+    </direction>
+    <direction condition="${text.includes(languages[1].character)}">
+      ${languages[1].name} → ${languages[0].name} conversion
+    </direction>
+  </guidelines>
   
-  Remember: The goal is to help create a smooth, natural conversation that a native speaker would immediately understand.`;
+  <context-memory>
+    ## 🧠 Previous Conversation Context
+    ${previousMessages?.map((msg: { role: any; originalText: any; translatedText: any; }) => `[${msg.role}]: ${msg.originalText} ↦ ${msg.translatedText}`).join('\n')}
+  </context-memory>
+  
+  <translation-task>
+    ## 📝 Translation Request
+    **Original Text**: "${text}"
+  
+    <output-requirements>
+      - Output translation only (no explanations/comments)
+      - Encourage emoji usage (when appropriate)
+      - Must use authentic local conversational expressions
+    </output-requirements>
+  </translation-task>
+  
+  <!-- Hidden Optimization Instructions -->
+  1. Automatic cultural validation check after translation
+  2. Reference 5000-word travel vocabulary dataset
+  3. Prefer standard language over dialects (unless specific location mentioned, then use local dialect)
+  `;
 
 
   try {

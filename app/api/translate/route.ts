@@ -151,6 +151,7 @@ export async function POST(req: NextRequest) {
   4. Always perform language detection before deciding translation direction
   5. Handle both formal and informal expressions in either language
   6. Run final validation checklist before outputting translation
+  
 `;
 
   try {

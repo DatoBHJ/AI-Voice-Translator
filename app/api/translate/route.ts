@@ -84,6 +84,15 @@ export async function POST(req: NextRequest) {
     </input-languages>
   </task>
 
+  <output-format strict="true">
+    - Return ONLY the translated text
+    - No prefixes (e.g., "Translation:", "Result:")
+    - No explanations or comments
+    - No formatting markers or decorators
+    - No quotation marks around the translation
+    - Pure text output in target language
+  </output-format>
+
   <input-analysis>
     1. First detect the input language by checking for any characteristics of either language
     2. The input could be ANY travel-related phrase in EITHER language
@@ -107,51 +116,43 @@ export async function POST(req: NextRequest) {
     - [Required] Distinguish between tourist ↔ local speech patterns
     - [Prohibited] Avoid literal translations - prioritize natural conversational expressions
     - [Additional] Include travel-related context when needed (e.g., "Bus 143" → "Bus 143 (City Circle Route)")
-  
-    ### ↔️ Bidirectional Translation Conditions
-    <direction condition="${text.includes(languages[0].character)}">
-      ${languages[0].name} → ${languages[1].name} conversion
-    </direction>
-    <direction condition="${text.includes(languages[1].character)}">
-      ${languages[1].name} → ${languages[0].name} conversion
-    </direction>
   </guidelines>
-  
+
   <context-memory>
     ## 🧠 Previous Conversation Context
     ${previousMessages?.map((msg: { role: any; originalText: any; translatedText: any; }) => `[${msg.role}]: ${msg.originalText} ↦ ${msg.translatedText}`).join('\n')}
   </context-memory>
   
   <translation-task>
-    ## 📝 Translation Request
-    **Original Text**: "${text}"
-  
-    <output-requirements>
-      - Output translation only (no explanations/comments)
-      - Encourage emoji usage (when appropriate)
+    <input>${text}</input>
+    <requirements>
+      - Emoji usage allowed (when culturally appropriate)
       - Must use authentic local conversational expressions
-    </output-requirements>
+      - Direct output with no decorators or explanations
+    </requirements>
   </translation-task>
 
   <final-validation>
-    After completing the translation, verify:
+    Verify silently before output:
     1. Natural Flow: Does it sound natural to native speakers?
     2. Cultural Accuracy: Are cultural nuances preserved appropriately?
     3. Context Match: Does it fit the travel conversation context?
     4. Politeness Level: Is the formality level appropriate?
     5. Original Intent: Does it maintain the original speaker's intention?
+    6. Clean Format: Is output free of any prefixes, markers, or decorators?
     
-    If any check fails, revise the translation accordingly.
+    If any check fails, revise accordingly.
   </final-validation>
   
   <!-- Hidden Optimization Instructions -->
   1. Automatic cultural validation check after translation
   2. Reference 5000-word travel vocabulary dataset
-  3. Prefer standard language over dialects (unless specific location mentioned, then use local dialect)
+  3. Prefer standard language over dialects (unless specific location mentioned)
   4. Always perform language detection before deciding translation direction
   5. Handle both formal and informal expressions in either language
-  6. Run final validation checklist before outputting translation
-  
+  6. Run final validation checklist before outputting
+  7. Strip any formatting or prefixes before final output
+  8. Return raw translated text only
 `;
 
   try {

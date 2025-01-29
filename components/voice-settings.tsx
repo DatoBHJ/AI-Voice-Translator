@@ -29,9 +29,9 @@ export const environmentPresets = {
     name: "Hotel Mode",
     description: "For quiet indoor spaces like hotels and museums",
     settings: {
-      silenceThreshold: -65,
-      silenceTimeout: 600,
-      smoothingTimeConstant: 0.6,
+      silenceThreshold: -45,
+      silenceTimeout: 400,
+      smoothingTimeConstant: 0.3,
     },
   },
   moderate: {
@@ -52,18 +52,18 @@ export const environmentPresets = {
       smoothingTimeConstant: 0.8,
     },
   },
-  default: {
-    name: "Default",
-    description: "Default settings",
-    settings: {
-      silenceThreshold: -45,
-      silenceTimeout: 400,
-      smoothingTimeConstant: 0.3,
-    },
-  },
+  // default: {
+  //   name: "Default",
+  //   description: "Default settings",
+  //   settings: {
+  //     silenceThreshold: -45,
+  //     silenceTimeout: 400,
+  //     smoothingTimeConstant: 0.3,
+  //   },
+  // },
 } as const;
 
-export const defaultVoiceSettings = environmentPresets.default.settings;
+export const defaultVoiceSettings = environmentPresets.quiet.settings;
 
 export function VoiceSettings({ onSettingsChange, currentSettings, onOpenChange }: VoiceSettingsProps) {
   const [currentMode, setCurrentMode] = React.useState(() => {

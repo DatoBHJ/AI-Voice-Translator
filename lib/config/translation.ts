@@ -11,7 +11,9 @@ export type ModelConfigs = {
   [key: string]: ModelConfig;
 };
 
+// add whatever models you want to use
 export const MODEL_CONFIGS: ModelConfigs = {
+  // deepseek
   deepseek: {
     baseURL: 'https://api.deepseek.com/v1',
     apiKey: process.env.DEEPSEEK_API_KEY,
@@ -19,6 +21,7 @@ export const MODEL_CONFIGS: ModelConfigs = {
     temperature: 0.3,
     promptType: 'simple'
   },
+  // groq
   groq: {
     baseURL: 'https://api.groq.com/openai/v1',
     apiKey: process.env.GROQ_API_KEY,
@@ -33,6 +36,7 @@ export const MODEL_CONFIGS: ModelConfigs = {
     temperature: 0.0,
     promptType: 'complex'
   },
+  // togetherai
   'togetherai': {
     baseURL: 'https://api.together.xyz/v1',
     apiKey: process.env.TOGETHER_API_KEY,
@@ -40,6 +44,7 @@ export const MODEL_CONFIGS: ModelConfigs = {
     temperature: 0.0,
     promptType: 'simple'
   },
+  // openai
   openai: {
     baseURL: 'https://api.openai.com/v1',
     apiKey: process.env.OPENAI_API_KEY,
@@ -49,7 +54,7 @@ export const MODEL_CONFIGS: ModelConfigs = {
   }
 };
 
-// Default model selection
+// Default model selection. We're using TogetherAI for now.
 export const DEFAULT_MODEL = 'togetherai';
 
 // Get model configuration

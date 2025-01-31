@@ -28,11 +28,23 @@ npm install
 
 2. Set environment variables (.env)
 ```env
+# Required for default translation
 GROQ_API_KEY=your_groq_key
+
+# Optional for TTS
 ELEVENLABS_API_KEY=your_elevenlabs_key
+
+# Optional for alternative models
+DEEPSEEK_API_KEY=your_deepseek_key
+OPENAI_API_KEY=your_openai_key
 ```
 
 3. Start development server
 ```bash
 npm run dev
 ```
+
+## Model Configuration
+
+Translation is powered by multiple LLM providers. The default configuration uses Groq's deepseek-r1-distill-llama-70b model, but you can easily switch between models by modifying `lib/config/translation.ts`:
+

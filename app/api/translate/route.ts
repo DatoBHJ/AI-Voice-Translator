@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import OpenAI from 'openai';
+import { getModelConfig, PROMPT_TEMPLATES } from '@/lib/config/translation';
 
 export const runtime = 'edge';
 
@@ -7,9 +8,12 @@ export const runtime = 'edge';
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 1000;
 
+// Get model configuration
+const modelConfig = getModelConfig();
+
 const client = new OpenAI({
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY || '',
+  baseURL: modelConfig.baseURL,
+  apiKey: modelConfig.apiKey,
 });
 
 // Smart retry function
@@ -75,91 +79,26 @@ export async function POST(req: NextRequest) {
     content: `Original: ${msg.originalText}\nTranslation: ${msg.translatedText}`
   })) || [];
 
-  const prompt = `
-  <task type="bidirectional-translation">
-    <role expertise="translation-expert cultural-mediator travel-conversation"/>
-    <input-languages>
-      <language>${languages[0].name}</language>
-      <language>${languages[1].name}</language>
-    </input-languages>
-  </task>
+  // Format conversation history for prompt
+  const conversationHistory = previousMessages?.map((msg: { originalText: any; translatedText: any; }) => 
+    `Original: ${msg.originalText}\nTranslation: ${msg.translatedText}`
+  ).join('\n') || '';
 
-  <output-format strict="true">
-    - Return ONLY the translated text
-    - No prefixes (e.g., "Translation:", "Result:")
-    - No explanations or comments
-    - No formatting markers or decorators
-    - No quotation marks around the translation
-    - Pure text output in target language
-  </output-format>
+  // Select and format prompt based on model configuration
+  const promptTemplate = PROMPT_TEMPLATES[modelConfig.promptType];
+  const prompt = promptTemplate
+    .replace(/{FROM_LANG}/g, languages[0].name)
+    .replace(/{TO_LANG}/g, languages[1].name)
+    .replace(/{CONTEXT}/g, conversationHistory)
+    .replace(/{TEXT}/g, text);
 
-  <input-analysis>
-    1. First detect the input language by checking for any characteristics of either language
-    2. The input could be ANY travel-related phrase in EITHER language
-    3. Do not assume a fixed translation direction
-    4. Input might be incomplete or conversational
-  </input-analysis>
-  
-  <translation-direction>
-    - If input contains ${languages[0].name} → translate to ${languages[1].name}
-    - If input contains ${languages[1].name} → translate to ${languages[0].name}
-    - Language detection should be done for each new input independently
-  </translation-direction>
-
-  <guidelines>
-    ### 🔍 Context Analysis Principles
-    1. Conversation Flow - Always reference previous dialogue history to maintain context
-    2. Intent Inference - "Where toilet?" → "Excuse me, could you please direct me to the restroom?"
-    3. Cultural Adaptation - Auto-adjust number formats, time expressions, and politeness levels
-  
-    ### ✍️ Translation Rules
-    - [Required] Distinguish between tourist ↔ local speech patterns
-    - [Prohibited] Avoid literal translations - prioritize natural conversational expressions
-    - [Additional] Include travel-related context when needed (e.g., "Bus 143" → "Bus 143 (City Circle Route)")
-  </guidelines>
-
-  <context-memory>
-    ## 🧠 Previous Conversation Context
-    ${previousMessages?.map((msg: { role: any; originalText: any; translatedText: any; }) => `[${msg.role}]: ${msg.originalText} ↦ ${msg.translatedText}`).join('\n')}
-  </context-memory>
-  
-  <translation-task>
-    <input>${text}</input>
-    <requirements>
-      - Emoji usage allowed (when culturally appropriate)
-      - Must use authentic local conversational expressions
-      - Direct output with no decorators or explanations
-    </requirements>
-  </translation-task>
-
-  <final-validation>
-    Verify silently before output:
-    1. Natural Flow: Does it sound natural to native speakers?
-    2. Cultural Accuracy: Are cultural nuances preserved appropriately?
-    3. Context Match: Does it fit the travel conversation context?
-    4. Politeness Level: Is the formality level appropriate?
-    5. Original Intent: Does it maintain the original speaker's intention?
-    6. Clean Format: Is output free of any prefixes, markers, or decorators?
-    
-    If any check fails, revise accordingly.
-  </final-validation>
-  
-  <!-- Hidden Optimization Instructions -->
-  1. Automatic cultural validation check after translation
-  2. Reference 5000-word travel vocabulary dataset
-  3. Prefer standard language over dialects (unless specific location mentioned)
-  4. Always perform language detection before deciding translation direction
-  5. Handle both formal and informal expressions in either language
-  6. Run final validation checklist before outputting
-  7. Strip any formatting or prefixes before final output
-  8. Return raw translated text only
-`;
+  console.log('Prompt:', prompt);
 
   try {
     // Use retry logic for the stream creation
     const stream = await withRetry(async () => {
       return await client.chat.completions.create({
-        model: 'deepseek-r1-distill-llama-70b',
+        model: modelConfig.model,
         messages: [
           ...contextMessages,
           {
@@ -167,7 +106,7 @@ export async function POST(req: NextRequest) {
             content: prompt
           }
         ],
-        temperature: 0.0,
+        temperature: modelConfig.temperature,
         stream: true,
       });
     });
@@ -206,7 +145,6 @@ export async function POST(req: NextRequest) {
               if (isThinkingPhase) {
                 if (content.includes('</think>')) {
                   isThinkingPhase = false;
-                  // Log thinking content for debugging
                   console.log('Thinking phase:', thinkingContent);
                   thinkingContent = '';
                   continue;

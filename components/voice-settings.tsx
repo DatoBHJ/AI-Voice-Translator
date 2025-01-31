@@ -39,7 +39,7 @@ export const environmentPresets = {
     description: "For moderately noisy places like cafes and restaurants",
     settings: {
       silenceThreshold: -50,
-      silenceTimeout: 600,
+      silenceTimeout: 400, //600
       smoothingTimeConstant: 0.5,
     },
   },
@@ -48,7 +48,7 @@ export const environmentPresets = {
     description: "For high noise areas with loud conversations and ambient sounds",
     settings: {
       silenceThreshold: -45,
-      silenceTimeout: 500,
+      silenceTimeout: 400, //500
       smoothingTimeConstant: 0.4,
     },
   },

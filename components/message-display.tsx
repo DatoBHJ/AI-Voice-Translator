@@ -54,7 +54,7 @@ export function MessageDisplay({ messages, currentLanguage }: MessageDisplayProp
   };
 
   return (
-    <div className="w-full space-y-2 px-4 py-4 bg-white">
+    <div className="w-full space-y-2 px-14 py-0 bg-white">
       {sortedMessages.map((message, index) => {
         const isSentByUser = message.sourceLang === currentLanguage;
         const showTimestamp = index === sortedMessages.length - 1 || 

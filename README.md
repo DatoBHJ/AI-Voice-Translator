@@ -46,5 +46,5 @@ npm run dev
 
 ## Model Configuration
 
-Translation is powered by multiple LLM providers. The default configuration uses Groq's deepseek-r1-distill-llama-70b model, but you can easily switch between models by modifying `lib/config/translation.ts`:
+You can switch between models by modifying `lib/config/translation.ts`:
 

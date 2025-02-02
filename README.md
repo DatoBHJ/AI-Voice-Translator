@@ -14,6 +14,8 @@ STT, language detection, and translation powered by Groq.
 C-3PO voice clone & auto TTS using ElevenLabs.
 whisper-large-v3 for STT. deepseek-r1 for translation.
 
+> Try it now: [nametwolangs.com](https://www.nametwolangs.com/)
+
 ## A simpler translator
 
 Built for simplicity - auto-detects languages, clean minimal interface, no endless scrolling through language options, minimal buttons. Just name 2 languages and you're ready to translate.

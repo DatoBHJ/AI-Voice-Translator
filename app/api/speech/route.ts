@@ -127,17 +127,22 @@ export async function POST(req: NextRequest) {
     let statusCode = 500;
 
     if (error instanceof Error) {
-      if (error.message.includes('Cloudflare') || error.message.includes('<!DOCTYPE html>')) {
-        errorMessage = 'Cellular data access restricted';
-        errorDetails = 'Service is temporarily restricted on cellular data. Please try using a Wi-Fi connection or use a VPN.';
+      if (error.message.includes('404') || error.message.includes('Not Found')) {
+        errorMessage = 'Network Access Restricted';
+        errorDetails = 'Service access may be limited on mobile data. Please try using a Wi-Fi connection or VPN.';
+        statusCode = 403;
+      } else if (error.message.includes('Cloudflare') || error.message.includes('<!DOCTYPE html>')) {
+        errorMessage = 'Network Access Restricted';
+        errorDetails = 'Service access may be limited on mobile data. Please try using a Wi-Fi connection or VPN.';
         statusCode = 403;
       } else if (error.message.includes('Failed to fetch') || error.message.includes('network')) {
-        errorMessage = 'Network connection failed';
+        errorMessage = 'Network Connection Failed';
         errorDetails = 'Network connection is unstable. Please check your internet connection and try again.';
         statusCode = 503;
       } else {
-        errorMessage = 'Processing error';
+        errorMessage = 'Processing Error';
         errorDetails = error.message;
+        
       }
     }
 
